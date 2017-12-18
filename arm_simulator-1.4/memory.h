@@ -44,4 +44,6 @@ int memory_write_byte(memory mem, uint32_t address, uint8_t value);
 int memory_write_half(memory mem, uint32_t address, uint16_t value);
 int memory_write_word(memory mem, uint32_t address, uint32_t value);
 
+// A commenter
+uint32_t reverse_endianess(uint32_t value);
 #endif

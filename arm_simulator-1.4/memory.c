@@ -26,29 +26,30 @@ Contact: Guillaume.Huard@imag.fr
 
 struct memory_data {
     size_t size;
-    uint32_t *memo = malloc(sizeof(uint32_t)*size);
+    uint32_t *memo;
     int is_big_endian;
 };
 
 memory memory_create(size_t size, int is_big_endian) {
 
-    memory mem= malloc(sizeof( memory)) ;
-    mem.size= size;
-    mem.is_big_endian = is_big_endian;
+    memory mem = malloc(sizeof( memory)) ;
+    mem->memo = malloc(sizeof(uint32_t)*size);
+    mem->size= size;
+    mem->is_big_endian = is_big_endian;
     return mem;
 }
 
 size_t memory_get_size(memory mem) {
 
-    return mem.size;
+    return mem->size;
 }
 
 void memory_destroy(memory mem) {
-
+    free(mem->memo);
+    free(mem);
 }
 
 int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
-
     return -1;
 }
 
@@ -57,7 +58,10 @@ int memory_read_half(memory mem, uint32_t address, uint16_t *value) {
 }
 
 int memory_read_word(memory mem, uint32_t address, uint32_t *value) {
-    return -1;
+    if (address < 0 || address > sizeof(uint32_t)*mem->size)
+        return -1;
+    *value = mem->memo[address];
+    return 0;
 }
 
 int memory_write_byte(memory mem, uint32_t address, uint8_t value) {
@@ -68,7 +72,29 @@ int memory_write_half(memory mem, uint32_t address, uint16_t value) {
     return -1;
 }
 
+uint32_t reverse_endianess(uint32_t value)
+{
+  uint32_t resultat = 0;
+  char *source, *destination;
+  int i;
+
+  source = (char *) &value;
+  destination = ((char *) &resultat)+sizeof(uint32_t);
+  for (i=0; i<sizeof(uint32_t); i++)
+      *(--destination) = *(source++);
+  return resultat;
+}
+
 int memory_write_word(memory mem, uint32_t address, uint32_t value) {
-    return -1;
+    if (address < 0 || address > sizeof(uint32_t)*mem->size)
+        return -1;
+    if (mem->is_big_endian) {
+        mem->memo[address] = value;
+    } else {
+        value = reverse_endianess(value);
+        mem->memo[address] = value;
+    }
+    
+    return mem->memo[address] = value;
 }
 
