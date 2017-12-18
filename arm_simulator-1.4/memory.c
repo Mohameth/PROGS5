@@ -25,21 +25,30 @@ Contact: Guillaume.Huard@imag.fr
 #include "util.h"
 
 struct memory_data {
+    size_t size;
+    uint32_t *memo = malloc(sizeof(uint32_t)*size);
+    int is_big_endian;
 };
 
 memory memory_create(size_t size, int is_big_endian) {
-    memory mem=NULL;
+
+    memory mem= malloc(sizeof( memory)) ;
+    mem.size= size;
+    mem.is_big_endian = is_big_endian;
     return mem;
 }
 
 size_t memory_get_size(memory mem) {
-    return 0;
+
+    return mem.size;
 }
 
 void memory_destroy(memory mem) {
+
 }
 
 int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
+
     return -1;
 }
 
@@ -62,3 +71,4 @@ int memory_write_half(memory mem, uint32_t address, uint16_t value) {
 int memory_write_word(memory mem, uint32_t address, uint32_t value) {
     return -1;
 }
+
