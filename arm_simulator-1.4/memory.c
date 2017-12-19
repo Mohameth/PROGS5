@@ -84,12 +84,13 @@ int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
 int memory_read_half(memory mem, uint32_t address, uint16_t *value) {
 
     if (address < 0 || address/4> mem->size || address%4 > 2){ return -1;}
-    if (mem->is_big_endian){
-        *value = ((mem->memo[address] ) << 8)+(mem->memo[address+1]);
-    } else {
-        *value = ((mem->memo[address] ) << 8)+(mem->memo[address+1]);
+    if (!mem->is_big_endian){
         *value = reverse_endianess16(*value);
     }
+    
+    *value = ((mem->memo[address] ) << 8)+(mem->memo[address+1]);
+        
+    
     return 0;
 }
 

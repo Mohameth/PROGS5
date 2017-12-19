@@ -27,13 +27,15 @@ Contact: Guillaume.Huard@imag.fr
 struct registers_data {
 	uint8_t mode;
 
-	uint32_t regs[15];
+	uint32_t *regs;
 	uint32_t pc;
 	uint32_t cpsr;
 };
 
 registers registers_create() {
     registers r = malloc(sizeof(registers));
+    r-> regs = malloc(sizeof(uint32_t)*15);
+    r->mode = 0;
     return r;
 }
 

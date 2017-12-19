@@ -29,6 +29,9 @@ Contact: Guillaume.Huard@imag.fr
 #include "util.h"
 
 static int arm_execute_instruction(arm_core p) {
+	/*registers reg = p->reg;
+	reg->pc++;*/
+	p->cycle_count++;
     return 0;
 }
 
