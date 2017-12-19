@@ -28,7 +28,6 @@ struct registers_data {
 	uint8_t mode;
 
 	uint32_t *regs;
-	uint32_t pc;
 	uint32_t cpsr;
 };
 
@@ -40,6 +39,7 @@ registers registers_create() {
 }
 
 void registers_destroy(registers r) {
+	free(r.regs);
 	free(r);
 }
 
