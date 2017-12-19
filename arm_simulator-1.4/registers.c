@@ -39,7 +39,7 @@ registers registers_create() {
 }
 
 void registers_destroy(registers r) {
-	free(r.regs);
+	free(r->regs);
 	free(r);
 }
 
