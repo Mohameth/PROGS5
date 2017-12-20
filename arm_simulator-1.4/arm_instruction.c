@@ -92,80 +92,86 @@ int and_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	uint32_t value = arm_read_usr_register(p, Rsource) & shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
 
-	return 1;
+	return 0;
 }
 int xor_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
 	uint32_t value = arm_read_usr_register(p, Rsource) ^ shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
 
-	return 1;
+	return 0;
 }
 int sub_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
 	uint32_t value = arm_read_usr_register(p, Rsource) - shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
 
-	return 1;
+	return 0;
 }
 int rsb_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
 	uint32_t value = shifter_operand - arm_read_usr_register(p, Rsource);
 	arm_write_usr_register(p, Rdest, value);
 
-	return 1;
+	return 0;
 }
-int add_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
-	uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand;
-	arm_write_usr_register(p, Rdest, value);
-
-	return 1;
+int add_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t I) {
+	if (I) {
+		uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand;
+		arm_write_usr_register(p, Rdest, value);
+	} else{
+		uint32_t r2 = arm_read_usr_register(p, shifter_operand);
+		uint32_t value = arm_read_usr_register(p, Rsource) + r2;
+		arm_write_usr_register(p, Rdest, value);
+	}
+	return 0;
 }
 int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C) {
 	uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand + flag_C;
 	arm_write_usr_register(p, Rdest, value);
 
-	return 1;
+	return 0;
 }
 
 int sbc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C) {
 	uint32_t value = arm_read_usr_register(p, Rsource)- shifter_operand - ~(flag_C);
 	arm_write_usr_register(p, Rdest, value);
 
-	return 1;
+	return 0;
 }
 
 int rsc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C) {
 	uint32_t value = shifter_operand - arm_read_usr_register(p, Rsource) - ~(flag_C);
 	arm_write_usr_register(p, Rdest, value);
 
-	return 1;
+	return 0;
 }
-int orr_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {return 0;}
+int orr_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {return 1;}
 int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand) {
 	arm_write_usr_register(p, Rdest, shifter_operand);
 
-	return 1;
+	return 0;
 }
-int bic_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {return 0;}
+int bic_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {return 1;}
 int mvn_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand) {
 	arm_write_usr_register(p, Rdest, ~shifter_operand);
 
-	return 1;
+	return 0;
 }
 
 
-int select_execute_instruction(arm_core p, uint32_t mot, uint8_t flag_N, uint8_t flag_Z, uint8_t flag_V, uint8_t flag_C) {
 
-	/** MASQUES **/
-	uint8_t masque4bits = 15; uint16_t masque12bits = 4095;
 
+
+
+int traitement_AR(arm_core p, uint32_t mot, uint8_t flag_C ){
+
+uint8_t masque4bits = 15; uint16_t masque12bits = 4095;
+uint8_t I = (mot>>25)&1;
 	/** Code of the current instruction **/
-	uint8_t opCode 	= (uint8_t) ((mot >> 21) & masque4bits);
-
-	/** Registers addresses **/
-	uint8_t Rsource = (uint8_t) ((mot >> 16) & masque4bits);
+uint8_t opCode 	= (uint8_t) ((mot >> 21) & masque4bits);
+/** Registers addresses **/
+uint8_t Rsource = (uint8_t) ((mot >> 16) & masque4bits);
 	uint8_t Rdest 	= (uint8_t) ((mot >> 12) & masque4bits);
 	uint16_t shifter_operand = (uint16_t) (mot & masque12bits);
-
-	/** Selecion of the instruction encoded in opCode **/
+/** Selecion of the instruction encoded in opCode **/
 	switch (opCode) {
 		case 0:
 			return and_instr(p, Rsource, Rdest, shifter_operand);
@@ -180,7 +186,7 @@ int select_execute_instruction(arm_core p, uint32_t mot, uint8_t flag_N, uint8_t
 			return rsb_instr(p, Rsource, Rdest, shifter_operand);
 			break;
 		case 4:
-			return add_instr(p, Rsource, Rdest, shifter_operand);
+			return add_instr(p, Rsource, Rdest, shifter_operand, I);
 			break;
 		case 5:
 			return adc_instr(p, Rsource, Rdest, shifter_operand, flag_C);
@@ -221,8 +227,41 @@ int select_execute_instruction(arm_core p, uint32_t mot, uint8_t flag_N, uint8_t
 		default:
 			printf("ERREUR: Mauvaise instruction \n");
 	}
+	return 1;
+}
 
-	return 0;
+int traitement_LS(){return 0;}
+
+int traitement_BR(){ return 0;}
+
+int traitement_SPE(){ return 0;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int select_execute_instruction(arm_core p, uint32_t mot, uint8_t flag_N, uint8_t flag_Z, uint8_t flag_V, uint8_t flag_C) {
+
+
+	uint8_t typeop = (mot >>26)&3;
+	switch (typeop){
+		case 0: return traitement_AR(p, mot, flag_C);break;
+		case 1: return traitement_LS();break;
+		case 2: return traitement_BR();break;
+		case 3: return traitement_SPE();break;
+}
+
+	return 1;
 }
 
 static int arm_execute_instruction(arm_core p) {
@@ -241,7 +280,7 @@ static int arm_execute_instruction(arm_core p) {
 	uint8_t flag_C = (cpsr >> C) & 1;
 
 	if (check_cond_failed(flag_N, flag_Z, flag_V, flag_C, cond)) {
-		return 0;
+		return 1;
 	}
 
 	return select_execute_instruction(p, mot, flag_N, flag_Z, flag_V, flag_C);
@@ -251,7 +290,7 @@ int arm_step(arm_core p) {
     int result;
 
     result = arm_execute_instruction(p);
-    if (!result)
+    if (result)
         arm_exception(p, result);
     return result;
 }
