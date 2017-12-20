@@ -116,16 +116,37 @@ int add_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	if (I) {
 		uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand;
 		arm_write_usr_register(p, Rdest, value);
-	} else{
+	} else {
 		uint32_t r2 = arm_read_usr_register(p, shifter_operand);
 		uint32_t value = arm_read_usr_register(p, Rsource) + r2;
 		arm_write_usr_register(p, Rdest, value);
 	}
 	return 0;
 }
-int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C) {
-	uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand + flag_C;
-	arm_write_usr_register(p, Rdest, value);
+int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C, uint8_t I) {
+	
+
+	add_instr(p,Rsource, Rdest, shifter_operand, I);
+
+
+	uint32_t cpsr = arm_read_cpsr(p);
+
+
+	uint32_t r2 = arm_read_usr_register(p, Rdest);
+	if (r2 > (4294967295)) { // if (r2>2^32-1)
+		//uint32_t flag_C  = 1 >> C;
+		cpsr = cpsr | (1 << C);
+		arm_write_cpsr(p, cpsr);
+	}
+/*
+	if (I) { 
+		uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand + flag_C;
+		arm_write_usr_register(p, Rdest, value);
+	} else {
+		uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand + flag_C;
+		arm_write_usr_register(p, Rdest, value);
+	}
+	*/
 
 	return 0;
 }
@@ -169,8 +190,8 @@ uint8_t I = (mot>>25)&1;
 uint8_t opCode 	= (uint8_t) ((mot >> 21) & masque4bits);
 /** Registers addresses **/
 uint8_t Rsource = (uint8_t) ((mot >> 16) & masque4bits);
-	uint8_t Rdest 	= (uint8_t) ((mot >> 12) & masque4bits);
-	uint16_t shifter_operand = (uint16_t) (mot & masque12bits);
+uint8_t Rdest 	= (uint8_t) ((mot >> 12) & masque4bits);
+uint16_t shifter_operand = (uint16_t) (mot & masque12bits);
 /** Selecion of the instruction encoded in opCode **/
 	switch (opCode) {
 		case 0:
@@ -189,7 +210,7 @@ uint8_t Rsource = (uint8_t) ((mot >> 16) & masque4bits);
 			return add_instr(p, Rsource, Rdest, shifter_operand, I);
 			break;
 		case 5:
-			return adc_instr(p, Rsource, Rdest, shifter_operand, flag_C);
+			return adc_instr(p, Rsource, Rdest, shifter_operand, flag_C, I);
 			break;
 		case 6:
 			return sbc_instr(p, Rsource, Rdest, shifter_operand, flag_C);
