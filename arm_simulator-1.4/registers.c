@@ -25,7 +25,6 @@ Contact: Guillaume.Huard@imag.fr
 #include <stdlib.h>
 
 struct registers_data {
-	uint8_t mode;
 
 	uint32_t *regs;
 	uint32_t cpsr;
@@ -34,7 +33,6 @@ struct registers_data {
 registers registers_create() {
     registers r = malloc(sizeof(registers));
     r-> regs = malloc(sizeof(uint32_t)*15);
-    r->mode = 0;
     return r;
 }
 
@@ -44,23 +42,20 @@ void registers_destroy(registers r) {
 }
 
 uint8_t get_mode(registers r) {
-    return r->mode;
+    return 0;
 } 
 
 int current_mode_has_spsr(registers r) {
-    return r->mode > 1;
+    return 0;
 }
 
 int in_a_privileged_mode(registers r) {
-    return r->mode > 0;
+    return 0;
 }
 
 uint32_t read_register(registers r, uint8_t reg) {
     uint32_t value = 0;
-    if (reg == 16)
-		value = read_cpsr(r);
-    else
-	    value = read_usr_register(r,reg);
+	value = read_usr_register(r,reg);
     return value;
 }
 
@@ -82,10 +77,7 @@ uint32_t read_spsr(registers r) {
 }
 
 void write_register(registers r, uint8_t reg, uint32_t value) {
-  if (reg == 16)
-		write_cpsr(r, value);
-    else
-	    write_usr_register(r,reg, value);
+	write_usr_register(r,reg, value);
 }
 
 void write_usr_register(registers r, uint8_t reg, uint32_t value) {
