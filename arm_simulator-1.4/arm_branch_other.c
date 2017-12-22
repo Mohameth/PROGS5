@@ -28,7 +28,31 @@ Contact: Guillaume.Huard@imag.fr
 
 
 int arm_branch(arm_core p, uint32_t ins) {
-    return UNDEFINED_INSTRUCTION;
+
+    uint8_t L = (ins>>24)&1;
+
+    uint32_t si = (ins & 0xFFFFFF);
+
+    if (L) {
+        // Mettre à jour LR. Mais sur quel registre ? Page 161
+    }
+
+    uint32_t SE;
+
+    if (si<0){
+        SE = -si;
+    } else {
+        SE = si*2;
+    }
+
+
+    uint32_t pc = arm_read_usr_register(p, 15) + (SE<<2);
+    
+    arm_write_usr_register(p,1,SE);
+
+    arm_write_usr_register(p,15,pc);
+
+    return 0;
 }
 
 int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
