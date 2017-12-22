@@ -28,30 +28,39 @@ Contact: Guillaume.Huard@imag.fr
 
 
 int arm_branch(arm_core p, uint32_t ins) {
+    // conditions à faire
+    if (get_bit(ins,25))
+        return b_bl_instr(p,ins);
+
+    return UNDEFINED_INSTRUCTION;
+}
+
+int b_bl_instr(arm_core p, uint32_t ins) {
+
+    int i;
+    int j;
 
     uint8_t L = (ins>>24)&1;
 
-    uint32_t si = (ins & 0xFFFFFF);
+    int si = (ins & 0xFFFFFF);
+
+    uint32_t pc = arm_read_usr_register(p, 15);
 
     if (L) {
-        // Mettre à jour LR. Mais sur quel registre ? Page 161
+        arm_write_usr_register(p, 14, pc);
     }
 
-    uint32_t SE;
+    int SE = 0;
 
-    if (si<0){
-        SE = -si;
+    uint8_t b24 =  (si>>23) & 1;
+    if (b24) {
+        SE = (si | 0x3F000000) << 2;
     } else {
-        SE = si*2;
+        SE = si << 2;
     }
 
-
-    uint32_t pc = arm_read_usr_register(p, 15) + (SE<<2);
-    
-    arm_write_usr_register(p,1,SE);
-
+    pc = pc + (SE);
     arm_write_usr_register(p,15,pc);
-
     return 0;
 }
 
@@ -64,6 +73,25 @@ int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {
     } 
     return UNDEFINED_INSTRUCTION;
 }
+
+int mrs_instr(arm_core p, uint32_t ins) {
+    uint8_t R = get_bit(ins,22);
+    uint8_t Rd = get_bits(ins, 15, 12);
+
+    uint32_t v;
+
+    if (R) {
+        v = arm_read_spsr(p);
+    } else {
+        v = arm_read_cpsr(p);
+    }
+
+    arm_write_usr_register(p, Rd, v);
+
+    return 0;
+}
+
+
 
 int arm_miscellaneous(arm_core p, uint32_t ins) {
     return UNDEFINED_INSTRUCTION;
