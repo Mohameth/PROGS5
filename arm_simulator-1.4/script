@@ -1,0 +1,5 @@
+
+file Examples/example2
+target remote localhost:12345
+load
+info register

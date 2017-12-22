@@ -10,7 +10,7 @@ SUB : -
 RSB : -
 ADD : Fait (Aymerick) [0]
 ADC : Fait (Aymerick) [0]
-SBC : Fait (Mohameth) [0]
+SBC : Fait P. (Mohameth) [0] (TODO: flag V)
 RSC : -
 TST : -
 TEQ : -

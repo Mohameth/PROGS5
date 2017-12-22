@@ -95,8 +95,8 @@ int check_cond_failed(uint8_t flag_N,uint8_t flag_Z,uint8_t flag_V,uint8_t flag_
 
 
 /**
-* met à jour un bit d'une suite de bit donnee
-* parametres : res est l'ensemble de bits consideres, num_bit est le numero du bit a modifier, set_bit est la nouvelle valeure a ajouter. 
+* met ï¿½ jour un bit d'une suite de bit donnee
+* parametres : res est l'ensemble de bits consideres, num_bit est le numero du bit a modifier, set_bit est la nouvelle valeure a ajouter.
 * retourne l'ensemble de bits
 * effets de bords : aucun
 */
@@ -127,7 +127,7 @@ uint32_t set_1_bit(uint32_t res, uint8_t num_bit, uint8_t set_bit) {
 */
 
 uint32_t maj_Z(arm_core p, uint32_t cpsr, uint8_t Rdest){
-	
+
 	return set_1_bit(cpsr, Z, (arm_read_usr_register(p, Rdest)==0));
 }
 
@@ -139,7 +139,7 @@ uint32_t maj_Z(arm_core p, uint32_t cpsr, uint8_t Rdest){
 */
 
 uint32_t maj_N(arm_core p, uint32_t cpsr, uint8_t Rdest){
-	
+
 	return set_1_bit(cpsr, N, (arm_read_register(p, Rdest) >> 31) & 1);
 }
 
@@ -152,7 +152,7 @@ uint32_t maj_N(arm_core p, uint32_t cpsr, uint8_t Rdest){
 */
 
 uint32_t maj_C(arm_core p, uint32_t cpsr, uint8_t Rdest, uint32_t shifter_operand, uint8_t flag_C){
-	
+
 	return set_1_bit(cpsr, C, (arm_read_register(p, Rsource)-shifter_operand-~(flag_C) >= 0));
 }
 
@@ -160,86 +160,250 @@ uint32_t maj_C(arm_core p, uint32_t cpsr, uint8_t Rdest, uint32_t shifter_operan
 /** INSTRUCTIONS TODO: Move functions below to instruction.c **/
 
 int and_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, uint8_t S) {
-	if(~I) {
-		shifter_operand = arm_read_usr_register(p, shifter_operand);
-	}
+	if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
+
+            uint8_t shifter_carry_out;
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
+
 	uint32_t value = arm_read_usr_register(p, Rsource) & shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
-	if(S){
-		//mettre a jour les flags.
+
+	if ((S == 1) && (Rdest == 15)) {
+		if(arm_current_mode_has_spsr(p)) {
+			arm_write_cpsr(p, arm_read_spsr(p));
+		}
+	} else if (S == 1) {
+		uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+		uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+		uint8_t	new_flag_C = shifter_carry_out;
+
+
+		uint32_t new_CPSR = arm_read_cpsr(p);
+		set_1_bit(new_CPSR, N, new_flag_N);
+		set_1_bit(new_CPSR, Z, new_flag_Z);
+		set_1_bit(new_CPSR, C, new_flag_C);
+		//V UNAFFECTED
+
+		arm_write_cpsr(p, new_CPSR);
 	}
 
 	return 0;
 }
-int xor_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
-	uint32_t value = arm_read_usr_register(p, Rsource) ^ shifter_operand;
-	arm_write_usr_register(p, Rdest, value);
 
-	return 0;
+int xor_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
+            if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+            else {
+                uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+                shifter_operand = ror(shifter_operand & 0xFF, ri*2);
+
+                uint8_t shifter_carry_out;
+                if (ri == 0) {
+                    shifter_carry_out = flag_C;
+                } else {
+                    shifter_carry_out = (shifter_operand >> 31) & 1;
+                }
+            }
+
+            uint32_t value = arm_read_usr_register(p, Rsource) ^ shifter_operand;
+            arm_write_usr_register(p, Rdest, value);
+
+            if ((S == 1) && (Rdest == 15)) {
+		if(arm_current_mode_has_spsr(p)) {
+			arm_write_cpsr(p, arm_read_spsr(p));
+		}
+            } else if (S == 1) {
+                    uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+                    uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+                    uint8_t	new_flag_C = shifter_carry_out;
+
+
+                    uint32_t new_CPSR = arm_read_cpsr(p);
+                    set_1_bit(new_CPSR, N, new_flag_N);
+                    set_1_bit(new_CPSR, Z, new_flag_Z);
+                    set_1_bit(new_CPSR, C, new_flag_C);
+                    //V UNAFFECTED
+
+                    arm_write_cpsr(p, new_CPSR);
+            }
+
+            return 0;
 }
 int sub_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
+        //Doc. p358
+        if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
+
+            uint8_t shifter_carry_out;
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
 	uint32_t value = arm_read_usr_register(p, Rsource) - shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
 
-	return 0;
+	if ((S == 1) && (Rdest == 15)) {
+            if(arm_current_mode_has_spsr(p)) {
+                    arm_write_cpsr(p, arm_read_spsr(p));
+            }
+        } else if (S == 1) {
+                uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+                uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+                uint8_t	new_flag_C = (~(arm_read_register(p, Rsource)-shifter_operand >= 0)) & 1;// flag_C = NOT BorrowFrom(Rn - shifter_operand)
+                //TODO: flag_V=OverflowFrom(Rn - shifter_operand)
+
+                uint32_t new_CPSR = arm_read_cpsr(p);
+                set_1_bit(new_CPSR, N, new_flag_N);
+                set_1_bit(new_CPSR, Z, new_flag_Z);
+                set_1_bit(new_CPSR, C, new_flag_C);
+                //TODO: flag_V
+
+
+                arm_write_cpsr(p, new_CPSR);
+        }
+
+        return 0;
 }
 int rsb_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
+        //Doc. p256
+        if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
+
+            uint8_t shifter_carry_out;
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
 	uint32_t value = shifter_operand - arm_read_usr_register(p, Rsource);
 	arm_write_usr_register(p, Rdest, value);
+
+        if ((S == 1) && (Rdest == 15)) {
+            if(arm_current_mode_has_spsr(p)) {
+                    arm_write_cpsr(p, arm_read_spsr(p));
+            }
+        } else if (S == 1) {
+                uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+                uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+                uint8_t	new_flag_C = (~(shifter_operand - arm_read_register(p, Rsource) >= 0)) & 1;// flag_C = NOT BorrowFrom(shifter_operand - Rn)
+                //TODO: flag_V=OverflowFrom(shifter_operand - Rn)
+
+                uint32_t new_CPSR = arm_read_cpsr(p);
+                set_1_bit(new_CPSR, N, new_flag_N);
+                set_1_bit(new_CPSR, Z, new_flag_Z);
+                set_1_bit(new_CPSR, C, new_flag_C);
+                //TODO: flag_V
+
+
+                arm_write_cpsr(p, new_CPSR);
+        }
 
 	return 0;
 }
 int add_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t I) {
+        //Doc. p156
+        if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
 
-	uint16_t ri = shifter_operand >> 8 & 0xF;
-	uint32_t so = ror(shifter_operand & 0xFF, ri*2);	
-
-
-	if (~I) {
-		shifter_operand = arm_read_usr_register(p, so);
-	}
+            uint8_t shifter_carry_out;
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
 	uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
+
+        if ((S == 1) && (Rdest == 15)) {
+            if(arm_current_mode_has_spsr(p)) {
+                    arm_write_cpsr(p, arm_read_spsr(p));
+            }
+        } else if (S == 1) {
+                uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+                uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+
+                //TODO: flag_C=CarryFrom(Rn + shifter_operand)
+                //TODO: flag_V=OverflowFrom(Rn + shifter_operand)
+
+                uint32_t new_CPSR = arm_read_cpsr(p);
+                set_1_bit(new_CPSR, N, new_flag_N);
+                set_1_bit(new_CPSR, Z, new_flag_Z);
+                //TODO: flag_C
+                //TODO: flag_V
+
+
+                arm_write_cpsr(p, new_CPSR);
+        }
 
 	return 0;
 }
 int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C, uint8_t I) {
+        //Doc. p154
+	if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
 
-	uint16_t ri = shifter_operand >> 8 & 0xF;
-	uint32_t so = ror(shifter_operand & 0xFF, ri*2);
-	uint32_t r2;
-
-	int value;
-	if (I) {
-		r2 = so;
-		value = arm_read_usr_register(p, Rsource) + r2;
-		arm_write_usr_register(p, Rdest, value);
-	} else {
-		r2 = arm_read_usr_register(p, so);
-		value = arm_read_usr_register(p, Rsource) + r2;
-		arm_write_usr_register(p, Rdest, value);
-	}
+            uint8_t shifter_carry_out;
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
+        uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand + flag_C;
+	arm_write_usr_register(p, Rdest, value);
 
 	uint32_t cpsr = arm_read_cpsr(p);
 
 
-	if (r2 < 4294967295 - so) { // if (r2>2^32-1)
+        //Test du carry flag avec r2 = shifter_operand
+	/*if (r2 < 4294967295 - so) { // if (r2>2^32-1)
 		//uint32_t flag_C  = 1 >> C;
 		cpsr = cpsr | (1 << C);
 		arm_write_cpsr(p, cpsr);
 	} else {
 		cpsr = cpsr & ~(1 << C);
 		arm_write_cpsr(p, cpsr);
-	}
-/*
-	if (I) { 
-		uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand + flag_C;
-		arm_write_usr_register(p, Rdest, value);
-	} else {
-		uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand + flag_C;
-		arm_write_usr_register(p, Rdest, value);
-	}
-	*/
+	}*/
+
+        if ((S == 1) && (Rdest == 15)) {
+            if(arm_current_mode_has_spsr(p)) {
+                    arm_write_cpsr(p, arm_read_spsr(p));
+            }
+        } else if (S == 1) {
+                uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+                uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+
+                //TODO: flag_C=CarryFrom(Rn + shifter_operand + flag_C)
+                //TODO: flag_V=OverflowFrom(Rn + shifter_operand + flag_C)
+
+                uint32_t new_CPSR = arm_read_cpsr(p);
+                set_1_bit(new_CPSR, N, new_flag_N);
+                set_1_bit(new_CPSR, Z, new_flag_Z);
+                //TODO: flag_C
+                //TODO: flag_V
+
+
+                arm_write_cpsr(p, new_CPSR);
+        }
 
 	return 0;
 }
@@ -253,18 +417,31 @@ int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 *
 **/
 int sbc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C, uint8_t I, uint8_t S) {
-	uint32_t value;
-	if (I) 	value = arm_read_usr_register(p, Rsource)- shifter_operand - ~(flag_C);
-	else 	value = arm_read_usr_register(p, Rsource) - arm_read_usr_register(p, shifter_operand) - ~(flag_C);
-	arm_write_usr_register(p, Rdest, value);
+	//Doc p.275
+        if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
 
-	if ((S == 1) && arm_read_usr_register(p, Rdest) == arm_read_usr_register(p, 15)) {
+            //  Inutile dans sbc
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
+
+        uint32_t value = arm_read_usr_register(p, Rsource) - shifter_operand - ~(flag_C);
+
+	arm_write_usr_register(p, Rdest, value);
+	if ((S == 1) && (Rdest == 15)) {
 		if(arm_current_mode_has_spsr(p)) {
 			arm_write_cpsr(p, arm_read_spsr(p));
 		}
 	} else if (S == 1) {
 		uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
 		uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+                //TODO: flag_C = NOT BorrowFrom(Rn - shifter_operand - NOT(flag_C))
 		uint8_t	new_flag_C = (arm_read_register(p, Rsource)-shifter_operand-~(flag_C) >= 0);
 		/*uint32_t max32bits = 0xFFFFFFFF;
 		uint8_t	new_flag_V = max32bits < (arm_read_register(p, Rdest) + ) & 1;//Attention, Ã  revoir*/
@@ -277,23 +454,91 @@ int sbc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 
 		arm_write_cpsr(p, new_CPSR);
 	}
-	
+
 	return 0;
 }
 
 //
 int rsc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C) {
+        //Doc. p267
+        if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
+
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
+
 	uint32_t value = shifter_operand - arm_read_usr_register(p, Rsource) - ~(flag_C);
 	arm_write_usr_register(p, Rdest, value);
+
+        if ((S == 1) && (Rdest == 15)) {
+		if(arm_current_mode_has_spsr(p)) {
+			arm_write_cpsr(p, arm_read_spsr(p));
+		}
+	} else if (S == 1) {
+		uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+		uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+                //TODO: flag_C = NOT BorrowFrom(shifter_operand - Rn - NOT(flag_C))
+		//TODO: flag_V = OverflowFrom(shifter_operand - Rn - NOT(flag_C))
+
+		uint32_t new_CPSR = arm_read_cpsr(p);
+		set_1_bit(new_CPSR, N, new_flag_N);
+		set_1_bit(new_CPSR, Z, new_flag_Z);
+                //TODO: flag_C
+                //TODO: flag_V
+
+		arm_write_cpsr(p, new_CPSR);
+	}
 
 	return 0;
 }
 
-// 
-int orr_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {return 1;}
+//
+int orr_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
+        //Doc. p235
+        if (~I) shifter_operand = arm_read_usr_register(p, shifter_operand);
+        else {
+            uint8_t ri = shifter_operand >> 8 & 0xF;//Doc. p446
+            shifter_operand = ror(shifter_operand & 0xFF, ri*2);
+
+            if (ri == 0) {
+                shifter_carry_out = flag_C;
+            } else {
+                shifter_carry_out = (shifter_operand >> 31) & 1;
+            }
+        }
+
+        uint32_t value = arm_read_usr_register(p, Rsource) | shifter_operand;
+	arm_write_usr_register(p, Rdest, value);
+
+        if ((S == 1) && (Rdest == 15)) {
+		if(arm_current_mode_has_spsr(p)) {
+			arm_write_cpsr(p, arm_read_spsr(p));
+		}
+	} else if (S == 1) {
+		uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+		uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+                uint8_t	new_flag_C = shifter_carry_out;
+
+		uint32_t new_CPSR = arm_read_cpsr(p);
+		set_1_bit(new_CPSR, N, new_flag_N);
+		set_1_bit(new_CPSR, Z, new_flag_Z);
+                set_1_bit(new_CPSR, C, new_flag_C);
+                //V UNAFFECTED
+
+		arm_write_cpsr(p, new_CPSR);
+	}
+
+        return 0;
+}
 
 int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, uint8_t flag_S) {
-
+        //Doc. p218
 	uint16_t ri = shifter_operand >> 8 & 0xF;
 	uint32_t so = ror(shifter_operand & 0xFF, ri*2);
 
@@ -342,7 +587,7 @@ int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, ui
 			set_bit(cpsr, C);
 		if (flag_V)
 			set_bit(cpsr, V);*/
-		
+
 		/*set_1_bit(cpsr, Z, flag_Z);
 		set_1_bit(cpsr, N, flag_N);
 		set_1_bit(cpsr, C, flag_C);*/
@@ -350,7 +595,7 @@ int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, ui
 
 		arm_write_cpsr(p,cpsr);
 	}
-	
+
 	return 0;
 }
 
@@ -408,7 +653,7 @@ int mvn_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, ui
 
 		arm_write_cpsr(p,cpsr);
 	}
-	
+
 	return 0;
 }
 
@@ -494,7 +739,7 @@ int traitement_LS(){return 0;}
 
 int traitement_BR(arm_core p, uint32_t mot){
 	arm_branch(p,mot);
-	
+
 
 	return 0;
 }
@@ -524,7 +769,7 @@ int select_execute_instruction(arm_core p, uint32_t mot, uint8_t flag_N, uint8_t
 		case 1: return traitement_LS();break;
 		case 2: return traitement_BR(p, mot);break;
 		case 3: return traitement_SPE();break;
-		
+
 }
 
 	return 1;
