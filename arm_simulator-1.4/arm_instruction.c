@@ -1,24 +1,24 @@
 /*
-Armator - simulateur de jeu d'instruction ARMv5T � but p�dagogique
+Armator - simulateur de jeu d'instruction ARMv5T ï¿½ but pï¿½dagogique
 Copyright (C) 2011 Guillaume Huard
 Ce programme est libre, vous pouvez le redistribuer et/ou le modifier selon les
-termes de la Licence Publique G�n�rale GNU publi�e par la Free Software
-Foundation (version 2 ou bien toute autre version ult�rieure choisie par vous).
+termes de la Licence Publique Gï¿½nï¿½rale GNU publiï¿½e par la Free Software
+Foundation (version 2 ou bien toute autre version ultï¿½rieure choisie par vous).
 
-Ce programme est distribu� car potentiellement utile, mais SANS AUCUNE
+Ce programme est distribuï¿½ car potentiellement utile, mais SANS AUCUNE
 GARANTIE, ni explicite ni implicite, y compris les garanties de
-commercialisation ou d'adaptation dans un but sp�cifique. Reportez-vous � la
-Licence Publique G�n�rale GNU pour plus de d�tails.
+commercialisation ou d'adaptation dans un but spï¿½cifique. Reportez-vous ï¿½ la
+Licence Publique Gï¿½nï¿½rale GNU pour plus de dï¿½tails.
 
-Vous devez avoir re�u une copie de la Licence Publique G�n�rale GNU en m�me
-temps que ce programme ; si ce n'est pas le cas, �crivez � la Free Software
+Vous devez avoir reï¿½u une copie de la Licence Publique Gï¿½nï¿½rale GNU en mï¿½me
+temps que ce programme ; si ce n'est pas le cas, ï¿½crivez ï¿½ la Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307,
-�tats-Unis.
+ï¿½tats-Unis.
 
 Contact: Guillaume.Huard@imag.fr
-	 B�timent IMAG
+	 Bï¿½timent IMAG
 	 700 avenue centrale, domaine universitaire
-	 38401 Saint Martin d'H�res
+	 38401 Saint Martin d'Hï¿½res
 */
 #include "arm_instruction.h"
 #include "arm_exception.h"
@@ -86,11 +86,56 @@ int check_cond_failed(uint8_t flag_N,uint8_t flag_Z,uint8_t flag_V,uint8_t flag_
 
 	return 1;
 }
+
+/**
+*
+* MAJ des flags
+*
+*/
+
+
+/**
+* met � jour un bit d'une suite de bit donnee
+* parametres : res est l'ensemble de bits consideres, num_bit est le numero du bit a modifier, set_bit est la nouvelle valeure a ajouter. 
+* retourne l'ensemble de bits
+* effets de bords : aucun
+* auteurs : Mohamet et Corentin
+*/
+
+uint32_t set_1_bit(uint32_t res, uint8_t num_bit, uint8_t set_bit) {
+	uint32_t masque = 1;
+	masque = ~(masque << num_bit);
+	res = res & masque;		//forcage à 0 du bit numbit
+
+	return res | (set_bit << num_bit);
+}
+
+/*
+* Maj du flag Z
+* parametres : p est l'armcore considere, Rdest est le registre qui contient la valeure nouvellement ajoutee (sur laquelle sera evaluee le flag)
+* retourne : l'ensemble de flags
+* effet de bords : aucun
+* auteurs : Corentin
+*/
+
+uint32_t maj_Z(arm_core p, uint32_t cpsr, uint8_t Rdest){
+	
+	return set_1_bit(cpsr, Z, (arm_read_usr_register(p, Rdest)==0));
+}
+
+
+
 /** INSTRUCTIONS TODO: Move functions below to instruction.c **/
 
-int and_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {
+int and_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, uint8_t S) {
+	if(~I) {
+		shifter_operand = arm_read_usr_register(p, shifter_operand);
+	}
 	uint32_t value = arm_read_usr_register(p, Rsource) & shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
+	if(S){
+		//mettre a jour les flags.
+	}
 
 	return 0;
 }
@@ -117,18 +162,16 @@ int add_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	uint16_t ri = shifter_operand >> 8 & 0xF;
 	uint32_t so = ror(shifter_operand & 0xFF, ri*2);	
 
-	if (I) {
-		uint32_t value = arm_read_usr_register(p, Rsource) + so;
-		arm_write_usr_register(p, Rdest, value);
-	} else {
-		uint32_t r2 = arm_read_usr_register(p, so);
-		uint32_t value = arm_read_usr_register(p, Rsource) + r2;
-		arm_write_usr_register(p, Rdest, value);
+
+	if (~I) {
+		shifter_operand = arm_read_usr_register(p, so);
 	}
+	uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand;
+	arm_write_usr_register(p, Rdest, value);
+
 	return 0;
 }
 int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C, uint8_t I) {
-	
 
 	uint16_t ri = shifter_operand >> 8 & 0xF;
 	uint32_t so = ror(shifter_operand & 0xFF, ri*2);
@@ -169,20 +212,54 @@ int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	return 0;
 }
 
-int sbc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C) {
-	uint32_t value = arm_read_usr_register(p, Rsource)- shifter_operand - ~(flag_C);
+
+/**
+* soustraction avec flag carry (c)
+* arguments : p l'armcore considere, le registre source, le registre destination, l'operande shift, la valeur du flag c, la valeur du flag s.
+* retourne : 0 SSI l'operation s'est bien passee, 1 sinon.
+* effets de bord : si s==1 alors il y a maj des flags ZNCV.
+*
+**/
+int sbc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C, uint8_t I, uint8_t S) {
+	uint32_t value;
+	if (I) 	value = arm_read_usr_register(p, Rsource)- shifter_operand - ~(flag_C);
+	else 	value = arm_read_usr_register(p, Rsource) - arm_read_usr_register(p, shifter_operand) - ~(flag_C);
 	arm_write_usr_register(p, Rdest, value);
 
+	if ((S == 1) && arm_read_usr_register(p, Rdest) == arm_read_usr_register(p, 15)) {
+		if(arm_current_mode_has_spsr(p)) {
+			arm_write_cpsr(p, arm_read_spsr(p));
+		}
+	} else if (S == 1) {
+		uint8_t	new_flag_N = (arm_read_register(p, Rdest) >> 31) & 1;
+		uint8_t	new_flag_Z = (arm_read_register(p, Rdest) == 0);
+		uint8_t	new_flag_C = (arm_read_register(p, Rsource)-shifter_operand-~(flag_C) >= 0);
+		/*uint32_t max32bits = 0xFFFFFFFF;
+		uint8_t	new_flag_V = max32bits < (arm_read_register(p, Rdest) + ) & 1;//Attention, à revoir*/
+
+		uint32_t new_CPSR = arm_read_cpsr(p);
+		set_1_bit(new_CPSR, N, new_flag_N);
+		set_1_bit(new_CPSR, Z, new_flag_Z);
+		set_1_bit(new_CPSR, C, new_flag_C);
+		//set_1_bit(new_CPSR, V, new_flag_V);
+
+		arm_write_cpsr(p, new_CPSR);
+	}
+	
 	return 0;
 }
 
+//
 int rsc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t flag_C) {
 	uint32_t value = shifter_operand - arm_read_usr_register(p, Rsource) - ~(flag_C);
 	arm_write_usr_register(p, Rdest, value);
 
 	return 0;
 }
+
+// 
 int orr_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {return 1;}
+
 int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, uint8_t flag_S) {
 
 	uint16_t ri = shifter_operand >> 8 & 0xF;
@@ -235,10 +312,12 @@ int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, ui
 		arm_write_cpsr(p,cpsr);
 	}
 	
-
 	return 0;
 }
+
+//
 int bic_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand) {return 1;}
+
 int mvn_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, uint8_t flag_S) {
 
 	uint16_t ri = shifter_operand >> 8 & 0xF;
@@ -298,24 +377,25 @@ int mvn_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, ui
 
 
 
-
+//
 int traitement_AR(arm_core p, uint32_t mot, uint8_t flag_C ){
 
-uint8_t masque4bits = 15; uint16_t masque12bits = 4095;
-uint8_t I = (mot>>25)&1;
-	/** Code of the current instruction **/
-uint8_t opCode 	= (uint8_t) ((mot >> 21) & masque4bits);
-/** Registers addresses **/
-uint8_t Rsource = (uint8_t) ((mot >> 16) & masque4bits);
-uint8_t Rdest 	= (uint8_t) ((mot >> 12) & masque4bits);
-uint16_t shifter_operand = (uint16_t) (mot & masque12bits);
+	uint8_t masque4bits = 15; uint16_t masque12bits = 4095;
+	uint8_t I = (mot>>25)&1;
+	uint8_t S = (mot>>20)&1;
+		/** Code of the current instruction **/
+	uint8_t opCode 	= (uint8_t) ((mot >> 21) & masque4bits);
+	/** Registers addresses **/
+	uint8_t Rsource = (uint8_t) ((mot >> 16) & masque4bits);
+	uint8_t Rdest 	= (uint8_t) ((mot >> 12) & masque4bits);
+	uint16_t shifter_operand = (uint16_t) (mot & masque12bits);
 
-uint8_t flag_S = (uint8_t) ((mot >> 20) & 1);
+	uint8_t flag_S = (uint8_t) ((mot >> 20) & 1);
 
 /** Selecion of the instruction encoded in opCode **/
 	switch (opCode) {
 		case 0:
-			return and_instr(p, Rsource, Rdest, shifter_operand);
+			return and_instr(p, Rsource, Rdest, shifter_operand, I, S);
 			break;
 		case 1:
 			return xor_instr(p, Rsource, Rdest, shifter_operand);
@@ -333,7 +413,7 @@ uint8_t flag_S = (uint8_t) ((mot >> 20) & 1);
 			return adc_instr(p, Rsource, Rdest, shifter_operand, flag_C, I);
 			break;
 		case 6:
-			return sbc_instr(p, Rsource, Rdest, shifter_operand, flag_C);
+			return sbc_instr(p, Rsource, Rdest, shifter_operand, flag_C, I, S);
 			break;
 		case 7:
 			return rsc_instr(p, Rsource, Rdest, shifter_operand, flag_C);
@@ -405,6 +485,7 @@ int select_execute_instruction(arm_core p, uint32_t mot, uint8_t flag_N, uint8_t
 		case 1: return traitement_LS();break;
 		case 2: return traitement_BR(p, mot);break;
 		case 3: return traitement_SPE();break;
+		
 }
 
 	return 1;
