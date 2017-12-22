@@ -1,10 +1,10 @@
-
+﻿
 BRANCHEMENTS :
 B : En cours (Aymerick) 
 BL : En cours (Aymerick)
 
 OPERATIONS ARITHMETIQUES :
-AND : -
+AND : Corentin (mise à jour des flags)
 EOR : -
 SUB : -
 RSB : -
