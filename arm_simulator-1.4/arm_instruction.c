@@ -99,7 +99,6 @@ int check_cond_failed(uint8_t flag_N,uint8_t flag_Z,uint8_t flag_V,uint8_t flag_
 * parametres : res est l'ensemble de bits consideres, num_bit est le numero du bit a modifier, set_bit est la nouvelle valeure a ajouter. 
 * retourne l'ensemble de bits
 * effets de bords : aucun
-* auteurs : Mohamet et Corentin
 */
 
 uint32_t set_1_bit(uint32_t res, uint8_t num_bit, uint8_t set_bit) {
@@ -110,12 +109,21 @@ uint32_t set_1_bit(uint32_t res, uint8_t num_bit, uint8_t set_bit) {
 	return res | (set_bit << num_bit);
 }
 
+/**
+*
+*
+*
+*/
+
+//uint32_t maj_flags(int Z, int N, int C){
+	// tester chaque possibilite
+//}
+
 /*
 * Maj du flag Z
-* parametres : p est l'armcore considere, Rdest est le registre qui contient la valeure nouvellement ajoutee (sur laquelle sera evaluee le flag)
-* retourne : l'ensemble de flags
+* parametres : p est l'armcore considere, cpsr est l'ensemble de bits consideres, Rdest est le registre qui contient la valeure nouvellement ajoutee (sur laquelle sera evaluee le flag)
+* retourne : le nouvel ensemble de flags
 * effet de bords : aucun
-* auteurs : Corentin
 */
 
 uint32_t maj_Z(arm_core p, uint32_t cpsr, uint8_t Rdest){
@@ -123,6 +131,30 @@ uint32_t maj_Z(arm_core p, uint32_t cpsr, uint8_t Rdest){
 	return set_1_bit(cpsr, Z, (arm_read_usr_register(p, Rdest)==0));
 }
 
+/*
+* Maj du flag N
+* parametres : p est l'armcore considere, cpsr est l'ensemble de bits consideres, Rdest est le registre qui contient la valeure nouvellement ajoutee (sur laquelle sera evaluee le flag)
+* retourne : le nouvel ensemble de flags
+* effet de bords : aucun
+*/
+
+uint32_t maj_N(arm_core p, uint32_t cpsr, uint8_t Rdest){
+	
+	return set_1_bit(cpsr, N, (arm_read_register(p, Rdest) >> 31) & 1);
+}
+
+/*
+* Maj du flag C
+* parametres : p est l'armcore considere, cpsr est l'ensemble de bits consideres, Rdest est le registre qui contient la valeure nouvellement ajoutee (sur laquelle sera evaluee le flag), shifter_operand est la deuxieme operand, flag_C est l'actuel flag C.
+* retourne : le nouvel ensemble de flags
+* effet de bords : aucun
+* auteurs : Corentin, Mohameth
+*/
+
+uint32_t maj_C(arm_core p, uint32_t cpsr, uint8_t Rdest, uint32_t shifter_operand, uint8_t flag_C){
+	
+	return set_1_bit(cpsr, C, (arm_read_register(p, Rsource)-shifter_operand-~(flag_C) >= 0));
+}
 
 
 /** INSTRUCTIONS TODO: Move functions below to instruction.c **/
@@ -286,17 +318,19 @@ int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, ui
 		uint32_t cpsr = arm_read_cpsr(p);
 		uint32_t value = arm_read_usr_register(p, Rdest);
 
-		uint8_t flag_N = (value >> N) & 1;
-		uint8_t flag_Z = value == 0;
+		//uint8_t flag_N = (value >> N) & 1;
+		cpsr = maj_N(p, cpsr, Rdest);
+		//uint8_t flag_Z = value == 0;
+		cpsr = maj_Z(p, cpsr, Rdest);
 		uint8_t flag_V = (cpsr >> V) & 1;
-		uint8_t flag_C = 0;
+		//uint8_t flag_C = 0;
 		if (value - (4294967295) > 0) { // if (r2>2^32-1)
 			flag_C = 1;
 		} else {
 			flag_C = 0;
 		}
 
-		clr_bit(cpsr, Z);
+		/*clr_bit(cpsr, Z);
 		clr_bit(cpsr, N);
 		clr_bit(cpsr, C);
 		clr_bit(cpsr, V);
@@ -307,7 +341,12 @@ int mov_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t I, ui
 		if (flag_C)
 			set_bit(cpsr, C);
 		if (flag_V)
-			set_bit(cpsr, V);
+			set_bit(cpsr, V);*/
+		
+		/*set_1_bit(cpsr, Z, flag_Z);
+		set_1_bit(cpsr, N, flag_N);
+		set_1_bit(cpsr, C, flag_C);*/
+		set_1_bit(cpsr, V, flag_V);
 
 		arm_write_cpsr(p,cpsr);
 	}
