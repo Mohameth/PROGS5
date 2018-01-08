@@ -52,15 +52,16 @@ int arm_data_processing_immediate_msr(arm_core p, uint32_t ins) {
 uint32_t set_1_bit(uint32_t res, uint8_t num_bit, uint8_t set_bit) {
 	uint32_t masque = 1;
 	masque = ~(masque << num_bit);
-	res = res & masque;		//forcage Ã  0 du bit numbit
+	res = res & masque;		//forcage a  0 du bit numbit
 
 	return res | (set_bit << num_bit);
 }
 
 /**
-*
-*
-*
+* met à jour les flags Z et N. C et V restent a modifier en local (car variables)
+* parametres : Rdest est le registre de destination, S est l'indicateur de mise a jour des flags, flag_C et flag_V sont les flags C et V actuels.
+* retour : aucun
+* effet de bord : cpsr mis a jour
 */
 void update_flags(arm_core p, uint8_t Rdest, uint8_t S, uint8_t flag_C, uint8_t flag_V) {
 	if ((S == 1) && (Rdest == 15)) {
@@ -79,7 +80,45 @@ void update_flags(arm_core p, uint8_t Rdest, uint8_t S, uint8_t flag_C, uint8_t 
 	}
 }
 
-/** INSTRUCTIONS TODO: Move functions below to instruction.c **/
+/**
+* Calcule s'il y a un borrow
+* param : operande1 et operande2, les deux operandes
+* return 1 ssi il y a borrow, 0 sinon
+* effet de bord : aucun
+*/
+
+uint8_t borrowFrom(uint32_t operande1, uint32_t operande2) {
+	return operande1 < operande2;
+}
+
+/**
+* Calcule s'il y a un carry
+* param : operande1 et operande2, les deux operandes
+* return 1 ssi il y a carry, 0 sinon
+* effet de bord : aucun
+*/
+
+
+uint8_t carryFrom(uint32_t operande1, uint32_t operande2) {
+	uint32_t max = ~0;
+	int temp = max-operande1;
+		
+	return operande2>temp;
+}
+
+/**
+* Calcule s'il y a un overflow
+* param : operande1 et operande2, les deux operandes
+* return 1 ssi il y a overflow, 0 sinon
+* effet de bord : aucun
+*/
+
+uint8_t overflowFrom(uint32_t operande1, uint32_t operande2, uint32_t result, uint8_t operation) {
+	if (operation == 1) { //Addition
+		return (((operande1 >> 31) == (operande2 >> 31)) && (operande1 >> 31) == result >> 31); 	} else { //Soustraction
+		return ((operande1 >> 31) != (operande2 >> 31)) && ((operande1 >> 31) != (result >> 31));
+	}
+}
 
 int and_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t shifter_carry_out, uint8_t S) {
 	//Doc. p159
