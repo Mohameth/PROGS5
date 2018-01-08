@@ -159,20 +159,19 @@ int traitement_AR(arm_core p, uint32_t mot, uint8_t flag_C ){
 		case 7:
 			return rsc_instr(p, Rsource, Rdest, shifter_operand, flag_C, S);
 			break;
-		/* TEST & COMPARE
+		// TEST & COMPARE
 		case 8:
-			return tst_instr(p, Rsource, Rdest, shifter_operand, mot);//Flags will be updated
+			return tst_instr(p, Rsource, shifter_operand, shifter_carry_out);
 			break;
 		case 9:
-			return teq_instr(p, Rsource, Rdest, shifter_operand, mot);//Flags will be updated
+			return teq_instr(p, Rsource, shifter_operand, shifter_carry_out);
 			break;
 		case 10:
-			return cmp_instr(p, Rsource, Rdest, shifter_operand, mot);//Flags will be updated
+			return cmp_instr(p, Rsource, shifter_operand);
 			break;
 		case 11:
-			return cmn_instr(p, Rsource, Rdest, shifter_operand, mot);//Flags will be updated
+			return cmn_instr(p, Rsource, shifter_operand);
 			break;
-		*/
 		case 12:
 			return orr_instr(p, Rsource, Rdest, shifter_operand, shifter_carry_out, S);
 			break;

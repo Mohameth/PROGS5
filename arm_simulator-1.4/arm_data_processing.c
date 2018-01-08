@@ -1,24 +1,24 @@
 /*
-Armator - simulateur de jeu d'instruction ARMv5T à but pédagogique
+Armator - simulateur de jeu d'instruction ARMv5T ï¿½ but pï¿½dagogique
 Copyright (C) 2011 Guillaume Huard
 Ce programme est libre, vous pouvez le redistribuer et/ou le modifier selon les
-termes de la Licence Publique Générale GNU publiée par la Free Software
-Foundation (version 2 ou bien toute autre version ultérieure choisie par vous).
+termes de la Licence Publique Gï¿½nï¿½rale GNU publiï¿½e par la Free Software
+Foundation (version 2 ou bien toute autre version ultï¿½rieure choisie par vous).
 
-Ce programme est distribué car potentiellement utile, mais SANS AUCUNE
+Ce programme est distribuï¿½ car potentiellement utile, mais SANS AUCUNE
 GARANTIE, ni explicite ni implicite, y compris les garanties de
-commercialisation ou d'adaptation dans un but spécifique. Reportez-vous à la
-Licence Publique Générale GNU pour plus de détails.
+commercialisation ou d'adaptation dans un but spï¿½cifique. Reportez-vous ï¿½ la
+Licence Publique Gï¿½nï¿½rale GNU pour plus de dï¿½tails.
 
-Vous devez avoir reçu une copie de la Licence Publique Générale GNU en même
-temps que ce programme ; si ce n'est pas le cas, écrivez à la Free Software
+Vous devez avoir reï¿½u une copie de la Licence Publique Gï¿½nï¿½rale GNU en mï¿½me
+temps que ce programme ; si ce n'est pas le cas, ï¿½crivez ï¿½ la Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307,
-États-Unis.
+ï¿½tats-Unis.
 
 Contact: Guillaume.Huard@imag.fr
-	 Bâtiment IMAG
+	 Bï¿½timent IMAG
 	 700 avenue centrale, domaine universitaire
-	 38401 Saint Martin d'Hères
+	 38401 Saint Martin d'Hï¿½res
 */
 #include "arm_data_processing.h"
 #include "arm_exception.h"
@@ -52,13 +52,13 @@ int arm_data_processing_immediate_msr(arm_core p, uint32_t ins) {
 uint32_t set_1_bit(uint32_t res, uint8_t num_bit, uint8_t set_bit) {
 	uint32_t masque = 1;
 	masque = ~(masque << num_bit);
-	res = res & masque;		//forcage a  0 du bit numbit
+	res = res & masque;		//forcage aï¿½ 0 du bit numbit
 
 	return res | (set_bit << num_bit);
 }
 
 /**
-* met à jour les flags Z et N. C et V restent a modifier en local (car variables)
+* met ï¿½ jour les flags Z et N. C et V restent a modifier en local (car variables)
 * parametres : Rdest est le registre de destination, S est l'indicateur de mise a jour des flags, flag_C et flag_V sont les flags C et V actuels.
 * retour : aucun
 * effet de bord : cpsr mis a jour
@@ -69,15 +69,18 @@ void update_flags(arm_core p, uint8_t Rdest, uint8_t S, uint8_t flag_C, uint8_t 
 			arm_write_cpsr(p, arm_read_spsr(p));
 		}
 	} else if (S == 1) {
-
-		uint32_t new_CPSR = arm_read_cpsr(p);
-		set_1_bit(new_CPSR, N, (arm_read_usr_register(p, Rdest) >> 31) & 1); //N Flag = Rd[31]
-		set_1_bit(new_CPSR, Z, (arm_read_usr_register(p, Rdest) == 0));//Z Flag = Rd == 0
-		if (flag_C != 0xFF) set_1_bit(new_CPSR, C, flag_C);
-		if (flag_V != 0xFF) set_1_bit(new_CPSR, V, flag_V);
-
-		arm_write_cpsr(p, new_CPSR);
+		write_flags(p, Rdest, flag_C, flag_V);
 	}
+}
+
+void write_flags(arm_core p, uint8_t Rdest, uint8_t flag_C, uint8_t flag_V) {
+  uint32_t new_CPSR = arm_read_cpsr(p);
+  set_1_bit(new_CPSR, N, (arm_read_usr_register(p, Rdest) >> 31) & 1); //N Flag = Rd[31]
+  set_1_bit(new_CPSR, Z, (arm_read_usr_register(p, Rdest) == 0));//Z Flag = Rd == 0
+  if (flag_C != 0xFF) set_1_bit(new_CPSR, C, flag_C);
+  if (flag_V != 0xFF) set_1_bit(new_CPSR, V, flag_V);
+
+  arm_write_cpsr(p, new_CPSR);
 }
 
 /**
@@ -102,13 +105,13 @@ uint8_t borrowFrom(uint32_t operande1, uint32_t operande2) {
 uint8_t carryFrom(uint32_t operande1, uint32_t operande2) {
 	uint32_t max = ~0;
 	int temp = max-operande1;
-		
+
 	return operande2>temp;
 }
 
 /**
 * Calcule s'il y a un overflow
-* param : operande1 et operande2 les deux operandes, result le resultat constate et operation le type d'operation : 1 pour l'adition 0 pour la soustraction. 
+* param : operande1 et operande2 les deux operandes, result le resultat constate et operation le type d'operation : 1 pour l'adition 0 pour la soustraction.
 * return 1 ssi il y a overflow, 0 sinon
 * effet de bord : aucun
 */
@@ -272,3 +275,44 @@ int mvn_instr(arm_core p, uint8_t Rdest, uint16_t shifter_operand, uint8_t shift
 	return 0;
 }
 
+int cmn_instr(arm_core p, uint8_t Rsource, uint16_t shifter_operand) {
+  //Doc. p.176
+  uint32_t result = arm_read_usr_register(p, Rsource) + shifter_operand;
+
+  write_flags(p, result,
+    carryFrom(arm_read_usr_register(p, Rsource), shifter_operand),
+    overflowFrom(arm_read_usr_register(p, Rsource), shifter_operand, result, 1)
+  );
+
+  return 0;
+}
+
+int cmp_instr(arm_core p, uint8_t Rsource, uint16_t shifter_operand) {
+  //Doc. p.178
+  uint32_t result = arm_read_usr_register(p, Rsource)-shifter_operand;
+
+  write_flags(p, result,
+    ~(borrowFrom(arm_read_usr_register(p, Rsource), shifter_operand)),
+    overflowFrom(arm_read_usr_register(p, Rsource), shifter_operand, result, 0)
+  );
+
+  return 0;
+}
+
+int tst_instr(arm_core p, uint8_t Rsource, uint16_t shifter_operand, uint8_t shifter_carry_out) {
+  //Doc. p.380
+  uint32_t result = arm_read_usr_register(p, Rsource)&shifter_operand;
+
+  write_flags(p, result, shifter_carry_out, 0xFF);
+
+  return 0;
+}
+
+int teq_instr(arm_core p, uint8_t Rsource, uint16_t shifter_operand, uint8_t shifter_carry_out) {
+  //Doc. p.378
+  uint32_t result = arm_read_usr_register(p, Rsource)^shifter_operand;
+
+  write_flags(p, result, shifter_carry_out, 0xFF);
+
+  return 0;
+}
