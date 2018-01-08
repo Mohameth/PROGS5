@@ -108,7 +108,7 @@ uint8_t carryFrom(uint32_t operande1, uint32_t operande2) {
 
 /**
 * Calcule s'il y a un overflow
-* param : operande1 et operande2, les deux operandes
+* param : operande1 et operande2 les deux operandes, result le resultat constate et operation le type d'operation : 1 pour l'adition 0 pour la soustraction. 
 * return 1 ssi il y a overflow, 0 sinon
 * effet de bord : aucun
 */
@@ -145,8 +145,8 @@ int sub_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	arm_write_usr_register(p, Rdest, value);
 
 	//NOT BorrowFrom(Rn - shifter_operand) --> NOT shifter_operand > Rn
-	//TODO: flag_V=OverflowFrom(Rn - shifter_operand)
-	update_flags(p, S, Rdest, ~(shifter_operand > arm_read_register(p, Rsource)), 0xFF);
+	//flag_V=OverflowFrom(Rn - shifter_operand)
+	update_flags(p, S, Rdest, ~borrowFrom(arm_read_register(p, Rsource), shifter_operand), overflowFrom(arm_read_register(p, Rsource), shifter_operand, value, 0));
 
   return 0;
 }
@@ -156,8 +156,8 @@ int rsb_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	arm_write_usr_register(p, Rdest, value);
 
 	//NOT BorrowFrom(shifter_operand - Rn) --> NOT Rn > shifter_operand
-	//TODO: flag_V=OverflowFrom(shifter_operand - Rn)
-	update_flags(p, S, Rdest, ~(arm_read_register(p, Rsource) > shifter_operand), 0xFF);
+	//flag_V=OverflowFrom(shifter_operand - Rn)
+	update_flags(p, S, Rdest, ~borrowFrom(shifter_operand, arm_read_register(p, Rsource)), overflowFrom(shifter_operand, arm_read_register(p, Rsource), value, 0));
 
 	return 0;
 }
@@ -166,9 +166,9 @@ int add_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	uint32_t value = arm_read_usr_register(p, Rsource) + shifter_operand;
 	arm_write_usr_register(p, Rdest, value);
 
-	//TODO: flag_C=CarryFrom(Rn + shifter_operand)
-	//TODO: flag_V=OverflowFrom(Rn + shifter_operand)
-	update_flags(p, S, Rdest, 0xFF, 0xFF);
+	//flag_C=CarryFrom(Rn + shifter_operand)
+	//flag_V=OverflowFrom(Rn + shifter_operand)
+	update_flags(p, S, Rdest, carryFrom(arm_read_register(p, Rsource), shifter_operand), overflowFrom(shifter_operand, arm_read_register(p, Rsource), value, 1));
 
 	return 0;
 }
@@ -187,9 +187,9 @@ int adc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 		arm_write_cpsr(p, cpsr);
 	}*/
 
-	//TODO: flag_C=CarryFrom(Rn + shifter_operand + flag_C)
-	//TODO: flag_V=OverflowFrom(Rn + shifter_operand + flag_C)
-	update_flags(p, S, Rdest, 0xFF, 0xFF);
+	//flag_C=CarryFrom(Rn + shifter_operand + flag_C)
+	//flag_V=OverflowFrom(Rn + shifter_operand + flag_C)
+	update_flags(p, S, Rdest, carryFrom(arm_read_register(p, Rsource), shifter_operand + flag_C), overflowFrom(shifter_operand + flag_C, arm_read_register(p, Rsource), value, 1));
 
 	return 0;
 }
@@ -207,11 +207,10 @@ int sbc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
   uint32_t value = arm_read_usr_register(p, Rsource) - shifter_operand - ~(flag_C);
 	arm_write_usr_register(p, Rdest, value);
 
-	//TODO: flag_C = NOT BorrowFrom(Rn - shifter_operand - NOT(flag_C))
-	//TODO: flag_V = OverflowFrom(Rn - shifter_operand - NOT(flag_C))
-	/*uint32_t max32bits = 0xFFFFFFFF;
-	uint8_t	new_flag_V = max32bits < (arm_read_register(p, Rdest) + ) & 1;//Attention, à revoir*/
-	update_flags(p, S, Rdest, 0xFF, 0xFF);
+	//flag_C = NOT BorrowFrom(Rn - shifter_operand - NOT(flag_C))
+	//flag_V = OverflowFrom(Rn - shifter_operand - NOT(flag_C))
+
+	update_flags(p, S, Rdest, ~(borrowFrom(arm_read_register(p, Rsource), shifter_operand - ~flag_C)), overflowFrom(arm_read_register(p, Rsource), shifter_operand - ~flag_C, value, 0));
 
 	return 0;
 }
@@ -222,9 +221,9 @@ int rsc_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_opera
 	uint32_t value = shifter_operand - arm_read_usr_register(p, Rsource) - ~(flag_C);
 	arm_write_usr_register(p, Rdest, value);
 
-	//TODO: flag_C = NOT BorrowFrom(shifter_operand - Rn - NOT(flag_C))
-	//TODO: flag_V = OverflowFrom(shifter_operand - Rn - NOT(flag_C))
-	update_flags(p, S, Rdest, 0xFF, 0xFF);
+	//flag_C = NOT BorrowFrom(shifter_operand - Rn - NOT(flag_C))
+	//flag_V = OverflowFrom(shifter_operand - Rn - NOT(flag_C))
+	update_flags(p, S, Rdest, ~(borrowFrom(shifter_operand - ~flag_C, arm_read_register(p, Rsource))), overflowFrom(shifter_operand - ~flag_C, arm_read_register(p, Rsource), value, 0));
 
 	return 0;
 }

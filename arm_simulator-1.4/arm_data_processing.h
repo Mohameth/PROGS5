@@ -30,6 +30,10 @@ int arm_data_processing_immediate_msr(arm_core p, uint32_t ins);
 
 uint32_t set_1_bit(uint32_t res, uint8_t num_bit, uint8_t set_bit);
 void update_flags(arm_core p, uint8_t Rdest, uint8_t S, uint8_t flag_C, uint8_t flag_V);
+uint8_t borrowFrom(uint32_t operande1, uint32_t operande2);
+uint8_t carryFrom(uint32_t operande1, uint32_t operande2);
+uint8_t overflowFrom(uint32_t operande1, uint32_t operande2, uint32_t result, uint8_t operation);
+
 
 int and_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t shifter_carry_out, uint8_t S);
 int xor_instr(arm_core p, uint8_t Rsource, uint8_t Rdest, uint16_t shifter_operand, uint8_t shifter_carry_out, uint8_t S) ;
