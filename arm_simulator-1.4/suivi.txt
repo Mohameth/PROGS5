@@ -5,8 +5,8 @@ BL : En cours (Aymerick)
 
 OPERATIONS ARITHMETIQUES :
 AND : Corentin (mise à jour des flags)
-EOR : -
-SUB : -
+EOR : OK
+SUB : OK
 RSB : -
 ADD : Fait (Aymerick) [0]
 ADC : Fait (Aymerick) [0]
