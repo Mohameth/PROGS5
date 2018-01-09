@@ -27,14 +27,6 @@ Contact: Guillaume.Huard@imag.fr
 #include <stdlib.h>
 
 
-int arm_branch(arm_core p, uint32_t ins) {
-    // conditions à faire
-    if (get_bit(ins,25))
-        return b_bl_instr(p,ins);
-
-    return UNDEFINED_INSTRUCTION;
-}
-
 int b_bl_instr(arm_core p, uint32_t ins) {
 
     int i;
@@ -62,6 +54,14 @@ int b_bl_instr(arm_core p, uint32_t ins) {
     pc = pc + (SE);
     arm_write_usr_register(p,15,pc);
     return 0;
+}
+
+int arm_branch(arm_core p, uint32_t ins) {
+    // conditions à faire
+    if (get_bit(ins,25))
+        return b_bl_instr(p,ins);
+
+    return UNDEFINED_INSTRUCTION;
 }
 
 int arm_coprocessor_others_swi(arm_core p, uint32_t ins) {

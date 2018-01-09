@@ -1,17 +1,11 @@
 .global main
 .text
 main:
-    mov r0, #0x12
-    mov r1, #0x34
-    add r0, r0, r1		// r0 = 46
-    mov r1, #0x56
-    lsl r0, #8
-    add r0, r1, r0	 
-    mov r1, #0x78
-    add r0, r1, r0, lsl #8
-    mov r1, #0x2000
-    str r0, [r1]
-    ldrb r2, [r1]
-    add r1, r1, #3
-    ldrb r3, [r1]
+	mov r0, #16
+	mov r0, r0, LSR #4
+	mov r1, #1
+
+    tst r0, r1
+
     swi 0x123456
+.data

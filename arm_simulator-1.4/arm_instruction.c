@@ -93,12 +93,129 @@ int check_cond_failed(uint8_t flag_N,uint8_t flag_Z,uint8_t flag_V,uint8_t flag_
  * Retourne : shifter_carry_out indiquant
  * Effet de bord : Modifie shifter_operand
  **/
-uint8_t update_shifter_operand(arm_core p, uint16_t *shifter_operand, uint8_t I, uint8_t flag_C) {
+uint8_t update_shifter_operand(arm_core p, uint8_t Rdest, uint16_t *shifter_operand, uint8_t I, uint8_t flag_C) {
 	uint8_t shifter_carry_out;
 
-	if (~I) {
-		*shifter_operand = arm_read_usr_register(p, *shifter_operand);
-		shifter_carry_out = flag_C;
+	if (!I) {
+		//*shifter_operand = arm_read_usr_register(p, *shifter_operand);
+		//shifter_carry_out = flag_C;
+
+		uint8_t r = (*shifter_operand>>4)&1;
+		arm_write_usr_register(p, 8, r);
+		arm_write_usr_register(p, 7, 15);
+		if (r) {
+			uint8_t RS = (*shifter_operand>>8) & 0xF;
+			uint8_t shift = (*shifter_operand>>5) & 3;
+			uint8_t RM = arm_read_usr_register(p, (*shifter_operand) & 0xF);
+
+			uint8_t RS4 = RS;
+			uint8_t RS7 = (Rdest<<4) | (RS);
+
+			arm_write_usr_register(p, 9, 15);
+
+			if (shift == 0) {
+				if (RS7 == 0) {
+					*shifter_operand = RM;
+					shifter_carry_out = flag_C;
+				} else if (RS7 < 32) {
+					*shifter_operand = RM << RS7;
+					shifter_carry_out = (RM >> (32-RS7)) & 1;
+				} else if (RS7 == 32) {
+					*shifter_operand = 0;
+					shifter_carry_out = RM & 1;
+				} else {
+					*shifter_operand = 0;
+					shifter_carry_out = 0;
+				}
+			} else if (shift == 1) {
+				if (RS7 == 0) {
+					*shifter_operand = RM;
+					shifter_carry_out = flag_C;
+				} else if (RS7 < 32) {
+					*shifter_operand = RM >> RS7;
+					shifter_carry_out = (RM >> (RS7-1)) & 1;
+				} else if (RS7 == 32) {
+					*shifter_operand = 0;
+					shifter_carry_out = (RM>>31) & 1;
+				} else {
+					*shifter_operand = 0;
+					shifter_carry_out = 0;
+				}
+			} else if (shift == 2) {
+				if (RS7 == 0) {
+					*shifter_operand = RM;
+					shifter_carry_out = flag_C;
+				} else if (RS7 < 32) {
+					*shifter_operand = asr(RM,RS7);
+					shifter_carry_out = (RM >> (RS7-1)) & 1;
+				} else{
+					if ((RM>>31 & 1)) {
+						*shifter_operand = 0;
+						shifter_carry_out = (RM>>31) & 1;
+					} else {
+						*shifter_operand = 0xFFFF;
+						shifter_carry_out = (RM>>31) & 1;
+					}
+
+				}
+			} else if (shift == 3) {
+				if (RS7 == 0) {
+					*shifter_operand = RM;
+					shifter_carry_out = flag_C;
+				} else if (RS4 == 0) {
+					*shifter_operand = RM;
+					shifter_carry_out = (RM >> 31) & 1;
+				} else{
+					*shifter_operand = asr(RM,RS4);
+					shifter_carry_out = (RM >> (RS4-1)) & 1;
+				}
+			}
+		} else {
+			uint8_t shift_imm = (*shifter_operand>>7) & 0x1F;
+			uint8_t shift = (*shifter_operand>>5) & 3;
+			uint8_t RM = arm_read_usr_register(p, (*shifter_operand) & 0xF);
+
+			if (shift == 0) {
+				if (shift_imm==0) {
+					*shifter_operand = RM;
+					shifter_carry_out = flag_C;
+				} else {
+					//OK
+					*shifter_operand = RM << shift_imm;
+					shifter_carry_out = (RM >> (32 - shift_imm)) & 1;
+				}
+			} else if (shift == 1) {
+				if (shift_imm==0) {
+					*shifter_operand = 0;
+					shifter_carry_out = (RM >> 31) & 1;
+				} else {
+					//OK
+					*shifter_operand = RM  >> shift_imm;
+					shifter_carry_out = (RM >> (shift_imm - 1)) & 1;
+				}
+			} else if (shift == 2) {
+				if (shift_imm==0) {
+					if ((RM<<31)&1==0) {
+						*shifter_operand = 0;
+						shifter_carry_out = (RM >> 31) & 1;
+					} else {
+						*shifter_operand = 0xFFFF;
+						shifter_carry_out = (RM >> 31) & 1;
+					}
+				} else {
+					*shifter_operand =  asr(RM,shift_imm);
+					shifter_carry_out = (RM >> (shift_imm - 1)) & 1;
+				}
+			} else if (shift == 3) {
+				if (shift_imm==0) {
+					
+				} else {
+					*shifter_operand = ror(RM, shift_imm);
+					shifter_carry_out = (RM >> (shift_imm - 1)) & 1;
+				}
+			}
+		}
+
 	}
 	else {
 		uint8_t ri = *shifter_operand >> 8 & 0xF;
@@ -131,7 +248,7 @@ int traitement_AR(arm_core p, uint32_t mot, uint8_t flag_C ){
 	uint16_t shifter_operand = (uint16_t) (mot & masque12bits);
 
 	/** Update of the shifter_operand if not immediate value **/
-	uint8_t shifter_carry_out = update_shifter_operand(p, &shifter_operand, I, flag_C);
+	uint8_t shifter_carry_out = update_shifter_operand(p, Rdest, &shifter_operand, I, flag_C);
 
 	/** Selecion of the instruction encoded in opCode **/
 	switch (opCode) {

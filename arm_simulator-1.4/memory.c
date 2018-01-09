@@ -58,8 +58,10 @@ void memory_destroy(memory mem) {
 int reverse_endianess(uint32_t value, uint8_t taille){
   int resultat = 0;
   int sizeOf = sizeof(uint32_t);
-  if(taille = 8||16||32){   // la taille est correcte.
+  if(taille == 8||16||32){   // la taille est correcte.
 	if(taille == 16){	
+    uint16_t value ;
+
 		value = (uint16_t) value ;
 		sizeOf = sizeof(uint16_t);
 	}
@@ -82,22 +84,24 @@ int reverse_endianess(uint32_t value, uint8_t taille){
 
 int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
     if (address < 0 || address/4> mem->size){ return -1;}
+
+    *value = mem->memo[address];
+
     if (!mem->is_big_endian){
          *value = reverse_endianess(*value, 8);
     }
-    *value = mem->memo[address];
     return 0;
 }
 
 int memory_read_half(memory mem, uint32_t address, uint16_t *value) {
 
     if (address < 0 || address/4> mem->size || address%4 > 2){ return -1;}
-    if (!mem->is_big_endian){
-        *value = reverse_endianess(*value, 16);
-    }
+
     
     *value = ((mem->memo[address] ) << 8)+(mem->memo[address+1]);
-        
+    if (!mem->is_big_endian){
+        *value = reverse_endianess(*value, 16);
+    }   
     
     return 0;
 }
@@ -129,7 +133,7 @@ int memory_write_half(memory mem, uint32_t address, uint16_t value) {
     	value = reverse_endianess(value, 16);
     }
 
-    mem->memo[address] = value>>8;
+    mem->memo[address] = value >> 8;
     mem -> memo[address+1] = value & 255;
     return 0;
 
