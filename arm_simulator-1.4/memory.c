@@ -32,7 +32,7 @@ struct memory_data {
 
 memory memory_create(size_t size, int is_big_endian) {
 
-    memory mem= malloc(sizeof( memory)) ;
+    memory mem= malloc(sizeof(struct memory_data)) ;
     mem->memo = malloc(sizeof(uint8_t)*4*size);
     mem->size= size;
     mem->is_big_endian = is_big_endian;
@@ -49,34 +49,42 @@ void memory_destroy(memory mem) {
     free (mem);
 }
 
-int reverse_endianess(int value)
-{
+/**
+*
+* @param value la valeur, taille la taille de value (16 ou 32)
+*
+*/
+
+int reverse_endianess(uint32_t value, uint8_t taille){
   int resultat = 0;
-  char *source, *destination;
-  int i;
+  int sizeOf = sizeof(uint32_t);
+  if(taille = 8||16||32){   // la taille est correcte.
+	if(taille == 16){	
+		value = (uint16_t) value ;
+		sizeOf = sizeof(uint16_t);
+	}
+	if(taille ==8){
+		value = (uint8_t) value ;
+		sizeOf = sizeof(uint8_t);
+	}
+        char *source, *destination;
+        int i;
+        source = (char *) &value;
+        destination = ((char *) &resultat)+sizeOf;
+        for (i=0; i<sizeOf; i++)
+        *(--destination) = *(source++);
 
-  source = (char *) &value;
-  destination = ((char *) &resultat)+sizeof(int);
-  for (i=0; i<sizeof(int); i++)
-      *(--destination) = *(source++);
-  return resultat;
-}
-
-uint16_t reverse_endianess16(uint16_t value)
-{
-  uint16_t resultat = 0;
-  char *source, *destination;
-  int i;
-
-  source = (char *) &value;
-  destination = ((char *) &resultat)+sizeof(uint16_t);
-  for (i=0; i<sizeof(uint16_t); i++)
-      *(--destination) = *(source++);
-  return resultat;
+  } else{	// la taille est incorrecte
+		resultat = -1 ; 
+  }
+  return resultat ;   
 }
 
 int memory_read_byte(memory mem, uint32_t address, uint8_t *value) {
     if (address < 0 || address/4> mem->size){ return -1;}
+    if (!mem->is_big_endian){
+         *value = reverse_endianess(*value, 8);
+    }
     *value = mem->memo[address];
     return 0;
 }
@@ -85,7 +93,7 @@ int memory_read_half(memory mem, uint32_t address, uint16_t *value) {
 
     if (address < 0 || address/4> mem->size || address%4 > 2){ return -1;}
     if (!mem->is_big_endian){
-        *value = reverse_endianess16(*value);
+        *value = reverse_endianess(*value, 16);
     }
     
     *value = ((mem->memo[address] ) << 8)+(mem->memo[address+1]);
@@ -100,56 +108,45 @@ int memory_read_word(memory mem, uint32_t address, uint32_t *value) {
         *value = ((mem->memo[address]) << 24)+((mem->memo[address+1]) << 16)+((mem->memo[address+2] ) << 8)+(mem->memo[address+3]);
     } else {
         *value = ((mem->memo[address]) << 24)+((mem->memo[address+1]) << 16)+((mem->memo[address+2] ) << 8)+(mem->memo[address+3]);
-        *value = reverse_endianess(*value);
+        *value = reverse_endianess(*value, 32);
     }
     return 0;
 }
 
 int memory_write_byte(memory mem, uint32_t address, uint8_t value) {
     if (address < 0 || address/4> mem->size){ return -1;}
-    if (mem->is_big_endian){
-        mem->memo[address] = value;
+    if (!mem->is_big_endian){
+    	value = reverse_endianess(value, 8);
     }
-    else{
-       
-        mem -> memo[address] = value;
-    }
+  	mem->memo[address] = value;
     return 0;
 }
 
 int memory_write_half(memory mem, uint32_t address, uint16_t value) {
     if (address < 0 || address/4> mem->size || address % 4 > 2)
         { return -1;}
-    if (mem->is_big_endian){
-        mem->memo[address] = value>>8;
-        mem -> memo[address+1] = value & 255;
+    if (!mem->is_big_endian){
+    	value = reverse_endianess(value, 16);
     }
-    else{
-        value = reverse_endianess16(value);
-        mem->memo[address] = value>>8;
-        mem -> memo[address+1] = value & 255;
-    }
-        return 0;
+
+    mem->memo[address] = value>>8;
+    mem -> memo[address+1] = value & 255;
+    return 0;
 
 }
 
 int memory_write_word(memory mem, uint32_t address, uint32_t value) {
     if (address < 0 || address/4> mem->size || address % 4 > 0)
         { return -1;}
-    if (mem->is_big_endian){
-        mem->memo[address] = value>>24;
-        mem -> memo[address+1] = (value >> 16) & 255;
-        mem -> memo[address+2] = (value >> 8) & 255;
-        mem -> memo[address+3] = value & 255;
+    if (!mem->is_big_endian){
+        value = reverse_endianess(value, 32);
     }
-    else{
-        value = reverse_endianess(value);
-        mem->memo[address] = value>>24;
-        mem -> memo[address+1] = value >> 16 & 255;
-        mem -> memo[address+2] = value >> 8 & 255;
-        mem -> memo[address+3] = value & 255;
-    }
-        return 0;
+
+     mem->memo[address] = value>>24;
+     mem -> memo[address+1] = (value >> 16) & 255;
+     mem -> memo[address+2] = (value >> 8) & 255;
+     mem -> memo[address+3] = value & 255;
+     return 0;
 
 }
 
