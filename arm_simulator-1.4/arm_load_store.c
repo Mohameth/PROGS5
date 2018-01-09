@@ -26,8 +26,13 @@ Contact: Guillaume.Huard@imag.fr
 #include "util.h"
 #include "debug.h"
 
+
 int arm_load_store(arm_core p, uint32_t ins) {
-    	uint32_t RN_adr;
+	//L_bit Distinguishes between a Load (L==1) and a Store instruction (L==0).
+	//B_bit Distinguishes between an unsigned byte (B==1) and a word (B==0) access
+	//I, P, U, W Are bits that distinguish between different types of <addressing_mode>
+	//TODO: T_BIT 
+	uint32_t data;   
 	uint32_t temp;
 	uint8_t P_bit = (uint8_t) ((ins >> 24) & 1);
 	uint8_t U_bit = (uint8_t) ((ins >> 23) & 1);
@@ -38,326 +43,211 @@ int arm_load_store(arm_core p, uint32_t ins) {
 	uint8_t RN_bit = (uint8_t) ((ins >> 16) & 15);
 	uint8_t RD_bit = (uint8_t) ((ins >> 12) & 1);
 	uint16_t offset = (uint16_t) ((ins) & 4095);/*12^2-1*/
-	uint8_t *byte;
-	uint32_t *mot;
-	int boolean;
 	uint8_t shift_T = (uint8_t) ((ins >> 5) & 3);
 	uint8_t shift_im = (uint8_t) ((ins >> 7) & 31);
 	uint8_t RM_bit = (uint8_t) ((ins) & 31);
 	uint32_t offset_reg;
-	if(L_bit){
 
+	if(L_bit){//load page 194
 		if(I_bit){
-			switch(shift_T){
+			switch(shift_T){//page 460
 
-				case 0 :  
-
+				case 0 :
 					offset_reg = arm_read_usr_register(p,RM_bit)<<shift_im;
 					if(U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
 						temp = RN_adr + offset_reg;				
-					
 					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
 						temp = RN_adr - offset_reg;	
 					}
+
 					if(B_bit){
-						boolean = arm_read_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
+						uint8_t choco
+						arm_read_byte(p, temp, *choco);
+						arm_write_usr_register(p, RD_bit, choco);
 					}else{
-						boolean = arm_read_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
+						uint32_t choco
+						arm_read_word(p, temp, *choco);
+					if(RD_bit ==15){
+						p->reg[15] = choco & 0xFFFFFFFE;
+					}else{
+						arm_write_usr_register(p, RD_bit, choco);
 					}
+
 					arm_write_usr_register(p, RN_bit, temp);
-
-
 
 				case 1 :
-
 					offset_reg = arm_read_usr_register(p,RM_bit)>>shift_im;
-					if(U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr + offset_reg;				
-					
-					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr - offset_reg;	
-					}
+						if(U_bit){
+							temp = RN_adr + offset_reg;				
+						}else{
+							temp = RN_adr - offset_reg;	
+						}
+
 					if(B_bit){
-						boolean = arm_read_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
+						uint8_t choco
+						arm_read_byte(p, temp, *choco);
+						arm_write_usr_register(p, RD_bit, choco);
 					}else{
-						boolean = arm_read_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
+						uint32_t choco
+						arm_read_word(p, temp, *choco);
+					
+					if(RD_bit ==15){
+						p->reg[15] = choco & 0xFFFFFFFE;
+					}else{
+						arm_write_usr_register(p, RD_bit, choco);
 					}
+
 					arm_write_usr_register(p, RN_bit, temp);
-
-
-
 
 				case 2 :
-
-					/*offset_reg = arm_read_usr_register(p,RM_bit)>>shift_im;*/
-
-					offset_reg= asr(offset_reg, shift_im);	
+					offset_reg= asr(RM_bit, shift_im);
 					if(U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
 						temp = RN_adr + offset_reg;				
-					
 					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
 						temp = RN_adr - offset_reg;	
 					}
+
 					if(B_bit){
-						boolean = arm_read_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
+						uint8_t choco
+						arm_read_byte(p, temp, *choco);
+						arm_write_usr_register(p, RD_bit, choco);
 					}else{
-						boolean = arm_read_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
+						uint32_t choco
+						arm_read_word(p, temp, *choco);
+					
+					if(RD_bit ==15){
+						p->reg[15] = choco & 0xFFFFFFFE;
+					}else{
+						arm_write_usr_register(p, RD_bit, choco);
 					}
+
+
 					arm_write_usr_register(p, RN_bit, temp);
-
-
 
 				case 3 :
 
 					offset_reg=arm_read_usr_register(p,RM_bit);
-					/*for(int i=0;i<shift_im;i++;){
-						if(offset_reg % 2 == 0){
-							offset_reg = offset_reg >> 1;
-						}else{
-							offset_reg = offset_reg >> 1;
-							offset_reg = offset_reg + (1<<32);
-						}}*/
-
-
-							offset_reg= ror( offset_reg, shift_im);
-
-
-
-					if (U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr + offset_reg;
+					offset_reg= ror( RM_bit, shift_im);
+					if(U_bit){
+						temp = RN_adr + offset_reg;				
 					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr - offset_reg;
-					}if(B_bit){
-						boolean = arm_read_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
-					}else{
-						boolean = arm_read_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
+						temp = RN_adr - offset_reg;	
 					}
-					arm_write_usr_register(p, RN_bit, temp);
-					
-			}
-		}else{ 
-			if(P_bit){
-			
-				if(U_bit){
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr + offset;				
-				
-				}else{
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr - offset;	
-				}
-				if(B_bit){
-					boolean = arm_read_byte(p, temp, byte);
-					&mot=&byte
-					arm_write_usr_register(p, RD_bit, &mot);
-				}else{
-					boolean = arm_read_word(p, temp, mot);
-					arm_write_usr_register(p, RD_bit, &mot);
-				}
-				if(W_bit){
-					arm_write_usr_register(p, RN_bit, temp);
-				}
 
+					if(B_bit){
+						uint8_t choco
+						arm_read_byte(p, temp, *choco);
+						arm_write_usr_register(p, RD_bit, choco);
+					}else{
+						uint32_t choco
+						arm_read_word(p, temp, *choco);
+					if(RD_bit ==15){
+						p->reg[15] = choco & 0xFFFFFFFE;
+					}else{
+						arm_write_usr_register(p, RD_bit, choco);
+					}
+					arm_write_usr_register(p, RN_bit, temp);	
 			}
-			else{
+		}else{
+
+			if(P_bit){
 				if(U_bit){
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr + offset;				
-				
+					temp = RN_adr + offset_reg;				
 				}else{
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr - offset;	
+					temp = RN_adr - offset_reg;	
 				}
 				if(B_bit){
-					boolean = arm_read_byte(p, RN_adr, byte);
-					&mot=&byte
-					arm_write_usr_register(p, RD_bit, &mot);
+					uint8_t choco
+					arm_read_byte(p, temp, *choco);
+					arm_write_usr_register(p, RD_bit, choco);
 				}else{
-					boolean = arm_read_word(p, RN_adr, mot);
-					arm_write_usr_register(p, RD_bit, &mot);
+					uint32_t choco
+					arm_read_word(p, temp, *choco);
+					
+					if(RD_bit ==15){
+						p->reg[15] = choco & 0xFFFFFFFE;
+					}else{
+						arm_write_usr_register(p, RD_bit, choco);
+					}
 				}
-				arm_write_usr_register(p, RN_bit, temp);
+					if(W_bit){
+					arm_write_usr_register(p, RN_bit, temp);
+				}
+			}else{
+				if(U_bit){
+					temp = RN_adr + offset_reg;				
+				}else{
+					temp = RN_adr - offset_reg;	
+				}
+				if(B_bit){
+					uint8_t choco
+					arm_read_byte(p, temp, *choco);
+					arm_write_usr_register(p, RD_bit, choco);
+				}else{
+					uint32_t choco
+					arm_read_word(p, temp, *choco);
+					
+					if(RD_bit ==15){
+						p->reg[15] = choco & 0xFFFFFFFE;
+					}else{
+						arm_write_usr_register(p, RD_bit, choco);
+					}
+				}
+					arm_write_usr_register(p, RN_bit, temp);
 			}	
 
 		}
-
-
-
-
-	}else{
+		
+	}else {//store page 345
 
 		if(I_bit){
+
 			switch(shift_T){
-
-				case 0 :  
-
-					offset_reg = arm_read_usr_register(p,RM_bit) << shift_im;
-					if(U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr + offset_reg;				
-					
-					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr - offset_reg;	
-					}
-					if(B_bit){
-						boolean = arm_read_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
-					}else{
-						boolean = arm_read_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
-					}
-					arm_write_usr_register(p, RN_bit, temp);
-
-
-
-				case 1 :
-
-					offset_reg = arm_read_usr_register(p,RM_bit)>>shift_im;
-					if(U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr + offset_reg;				
-					
-					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr - offset_reg;	
-					}
-					if(B_bit){
-						boolean = arm_write_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
-					}else{
-						boolean = arm_write_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
-					}
-					arm_write_usr_register(p, RN_bit, temp);
-
-
-
-
-				case 2 :
-
-					offset_reg = arm_read_usr_register(p,RM_bit)>>shift_im;
-					if(U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr + offset_reg;				
-					
-					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr - offset_reg;	
-					}
-					if(B_bit){
-						boolean = arm_write_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
-					}else{
-						boolean = arm_write_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
-					}
-					arm_write_usr_register(p, RN_bit, temp);
-
-
-
-				case 3 :
-
-					offset_reg=arm_read_usr_register(p,RM_bit);
-					for(int i=0;i<shift_im;i++;){
-						if(offset_reg % 2 == 0){
-							offset_reg = offset_reg >> 1;
-						}else{
-							offset_reg = offset_reg >> 1;
-							offset_reg = offset_reg + (1<<32);
-						}}
-					if (U_bit){
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr + offset_reg;
-					}else{
-						RN_adr=arm_read_usr_register(p,RN_bit);
-						temp = RN_adr - offset_reg;
-					}if(B_bit){
-						boolean = arm_write_byte(p, temp, byte);
-						&mot=&byte
-						arm_write_usr_register(p, RD_bit, &mot);
-					}else{
-						boolean = arm_write_word(p, temp, mot);
-						arm_write_usr_register(p, RD_bit, &mot);
-					}
-					arm_write_usr_register(p, RN_bit, temp);
-					
+				case 0: ;
+				case 1: ;
+				case 2: ;
+				case 3: ;
 			}
-		}else{ 
+
+		}else{
 			if(P_bit){
-			
 				if(U_bit){
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr + offset;				
-				
+					temp = RN_adr + offset_reg;				
 				}else{
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr - offset;	
+					temp = RN_adr - offset_reg;	
 				}
 				if(B_bit){
-					boolean = arm_write_byte(p, temp, byte);
-					&mot=&byte
-					arm_write_usr_register(p, RD_bit, &mot);
+					uint8_t choco = arm_read_usr_register(p, RD_bit) & 0xFF;
+					arm_write_byte(p, temp, choco);
 				}else{
-					boolean =arm_write_word(p, temp, mot);
-					arm_write_usr_register(p, RD_bit, &mot);
-				}
+					uint32_t choco = arm_read_usr_register(p, RD_bit);
+					arm_write_usr_register(p, temp, choco);
+				}	
+
 				if(W_bit){
 					arm_write_usr_register(p, RN_bit, temp);
 				}
-
-			}
-			else{
+			}else{
 				if(U_bit){
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr + offset;				
-				
+					temp = RN_adr + offset_reg;				
 				}else{
-					RN_adr=arm_read_usr_register(p,RN_bit);
-					temp = RN_adr - offset;	
+					temp = RN_adr - offset_reg;	
 				}
 				if(B_bit){
-					boolean = arm_write_byte(p, RN_adr, byte);
-					&mot=&byte
-					arm_write_usr_register(p, RD_bit, &mot);
+					uint8_t choco = arm_read_usr_register(p, RD_bit) & 0xFF;
+					arm_write_byte(p, temp, choco);
 				}else{
-					boolean = arm_write_word(p, RN_adr, mot);
-					arm_write_usr_register(p, RD_bit, &mot);
-				}
-				arm_write_usr_register(p, RN_bit, temp);
+					uint32_t choco = arm_read_usr_register(p, RD_bit);
+					arm_write_usr_register(p, temp, choco);
+				}	
+					arm_write_usr_register(p, RN_bit, temp);
 			}
-			
-
 		}
-
 	}
-
-
 	return 0;
 }
+
+
 int number_of_registers(uint16_t bit){
 	int i,cpt=0;
 	for(i=1;i<16;i++){
@@ -373,66 +263,70 @@ int number_of_registers(uint16_t bit){
 
 
 } 
-int arm_load_store_multiple(arm_core p, uint32_t ins) {
-
+int arm_load_store_multiple(arm_core p, uint32_t ins) {//page 143
+	//TODO: T_BIT
 	uint8_t 23_24_bit = (uint8_t) ((ins >> 23) & 1);	
 	uint16_t register_list=(uint8_t) ((ins) & 65536);
 	uint8_t RN_bit = (uint8_t) ((ins >> 16) & 15);
 	uint8_t Cond_bit = (uint8_t) ((ins >> 28) & 15);
 	uint8_t S_bit = (uint8_t) ((ins >> 22) & 1);
 	uint8_t L_bit = (uint8_t) ((ins >> 20) & 1);
-	uint8_t W_bit = (uint8_t) ((ins >> 21) & 1);
+	
 	uint32_t start_address;
 	uint32_t end_address;
-	switch(23_24_bit){
-		case 0:/*Decrement after*/
-			if(L_bit){
-				start_address =arm_read_usr_register(p,RN_bit)-(number_of_registers(register_list)*4)+4;
-				end_address = arm_read_usr_register(p,RN_bit);
-				if(W_bit){
-					RN_bit= arm_read_usr_register(p,RN_bit)-(number_of_registers(register_list)*4);	
-				}
-			}else{
-			
-			}
-		case 1:/*Increment after*/
-			if(L_bit){
-				start_address =arm_read_usr_register(p,RN_bit);
-				end_address =  arm_read_usr_register(p,RN_bit)+(number_of_registers(register_list)*4)-4;
-				if(W_bit){
-					RN_bit= arm_read_usr_register(p,RN_bit)+(number_of_registers(register_list)*4);	
-				}
-			}else{
-			
-			}
-
-		case 2:/*Decrement before*/
-			if(L_bit){
-				start_address =arm_read_usr_register(p,RN_bit)-(number_of_registers(register_list)*4);
-				end_address = arm_read_usr_register(p,RN_bit)-4;
-				if(W_bit){
-					RN_bit= arm_read_usr_register(p,RN_bit)-(number_of_registers(register_list)*4);	
-				}
-			}else{
-			
-			}
-
-			case 3:/*Increment before*/
-			if(L_bit){
-				start_address =arm_read_usr_register(p,RN_bit)+4;
-				end_address = arm_read_usr_register(p,RN_bit)+(number_of_registers(register_list)*4);
-				if(W_bit){
-					RN_bit= arm_read_usr_register(p,RN_bit)+(number_of_registers(register_list)*4);	
-				}
-			}else{
-			
-			}
-
+	uint32_t address;
+	uint16_t *value;
+	
+	init_addresses(*start_address,*end_address,23_24_bit );	
+	if(W_bit){
+		RN_bit= arm_read_usr_register(p,RN_bit)-(number_of_registers(register_list)*4);	
 	}
 
-
+	if(L_bit){//load page
+		address=start_address;
+		for (i=0;i<15;i++){
+			if((register_list >> i) & 1)){
+				arm_write_usr_register(p, p->reg[i], arm_read_word(p,address,value));
+				address = address + 4;
+			}
+		}	
+		if((register_list >> 15) & 1){
+			arm_write_usr_register(p, value, arm_read_word(p,address,value));
+			p->reg[15] = value & 0xFFFFFFFE;
+		}
+		if(end_address!=address-4){
+			return 1;
+		}
+		
+	}else{//store page
+		address=start_address;
+		for (i=0;i<15;i++){
+			if((register_list >> i) & 1)){
+				arm_write_word(p, temp, arm_read_usr_register(p, p->reg[RD_bit]));
+				address = address + 4;
+			}
+		}
+		if(end_address!=address-4){
+			return 1;	
 	return 0;
 
+}
+
+void init_addresses(uint32_t * start_address, uint32_t * end_address,uint8_t 23_24_bit ) {
+	//doc page 
+	switch(23_24_bit){
+		case 0:/*Decrement	ent after*/
+			start_address =arm_read_usr_register(p,RN_bit)-(number_of_registers(register_list)*4)+4;
+			end_address = arm_read_usr_register(p,RN_bit);
+		case 1:/*Increment after*/
+			start_address =arm_read_usr_register(p,RN_bit);
+			end_address =  arm_read_usr_register(p,RN_bit)+(number_of_registers(register_list)*4)-4;
+		case 2:/*Decrement before*/
+			start_address =arm_read_usr_register(p,RN_bit)-(number_of_registers(register_list)*4);
+			end_address = arm_read_usr_register(p,RN_bit)-4;
+		case 3:/*Increment before*/		
+			start_address =arm_read_usr_register(p,RN_bit)+4;
+			end_address = arm_read_usr_register(p,RN_bit)+(number_of_registers(register_list)*4);	
 }
 
 int arm_coprocessor_load_store(arm_core p, uint32_t ins) {
