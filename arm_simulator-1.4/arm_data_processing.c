@@ -81,6 +81,14 @@ void write_flags(arm_core p, uint8_t Rdest, uint8_t flag_C, uint8_t flag_V) {
   if (flag_V != 0xFF) set_1_bit(new_CPSR, V, flag_V);
 
   arm_write_cpsr(p, new_CPSR);
+
+
+
+	//arm_write_usr_register(p,9,  (new_CPSR >> Z) & 1);
+	//arm_write_usr_register(p,10, (new_CPSR >> N) & 1);
+	//arm_write_usr_register(p,11, flag_C);
+	//arm_write_usr_register(p,12, flag_V);
+
 }
 
 /**

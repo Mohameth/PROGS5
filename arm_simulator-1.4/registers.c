@@ -26,18 +26,19 @@ Contact: Guillaume.Huard@imag.fr
 
 struct registers_data {
 
-	uint32_t *regs;
+	//uint32_t *regs;
+    uint32_t regs[15];
 	uint32_t cpsr;
 };
 
 registers registers_create() {
-    registers r = malloc(sizeof(registers));
-    r-> regs = malloc(sizeof(uint32_t)*15);
+    registers r = malloc(sizeof(struct registers_data));
+    //r-> regs = malloc(sizeof(uint32_t)*15);
     return r;
 }
 
 void registers_destroy(registers r) {
-	free(r->regs);
+	//free(r->regs);
 	free(r);
 }
 
@@ -81,7 +82,7 @@ void write_register(registers r, uint8_t reg, uint32_t value) {
 }
 
 void write_usr_register(registers r, uint8_t reg, uint32_t value) {
-	r->regs[reg] = value;
+    r->regs[reg] = value;
 }
 
 void write_cpsr(registers r, uint32_t value) {
