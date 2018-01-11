@@ -101,8 +101,6 @@ uint8_t update_shifter_operand(arm_core p, uint8_t Rdest, uint16_t *shifter_oper
 		//shifter_carry_out = flag_C;
 
 		uint8_t r = (*shifter_operand>>4)&1;
-		arm_write_usr_register(p, 8, r);
-		arm_write_usr_register(p, 7, 15);
 		if (r) {
 			uint8_t RS = (*shifter_operand>>8) & 0xF;
 			uint8_t shift = (*shifter_operand>>5) & 3;
@@ -110,8 +108,6 @@ uint8_t update_shifter_operand(arm_core p, uint8_t Rdest, uint16_t *shifter_oper
 
 			uint8_t RS4 = RS;
 			uint8_t RS7 = (Rdest<<4) | (RS);
-
-			arm_write_usr_register(p, 9, 15);
 
 			if (shift == 0) {
 				if (RS7 == 0) {
