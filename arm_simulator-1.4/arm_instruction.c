@@ -26,6 +26,7 @@ Contact: Guillaume.Huard@imag.fr
 #include "arm_load_store.h"
 #include "arm_branch_other.h"
 #include "arm_constants.h"
+#include "assert.h"
 #include "util.h"
 
 int check_cond_failed(uint8_t flag_N,uint8_t flag_Z,uint8_t flag_V,uint8_t flag_C,uint8_t cond) {
@@ -195,7 +196,7 @@ uint8_t update_shifter_operand(arm_core p, uint8_t Rdest, uint16_t *shifter_oper
 				}
 			} else if (shift == 2) {
 				if (shift_imm==0) {
-					if ((RM<<31)&1==0) {
+					if (((RM<<31)&1)==0) {
 						*shifter_operand = 0;
 						shifter_carry_out = (RM >> 31) & 1;
 					} else {
@@ -208,7 +209,7 @@ uint8_t update_shifter_operand(arm_core p, uint8_t Rdest, uint16_t *shifter_oper
 				}
 			} else if (shift == 3) {
 				if (shift_imm==0) {
-					
+
 				} else {
 					*shifter_operand = ror(RM, shift_imm);
 					shifter_carry_out = (RM >> (shift_imm - 1)) & 1;
@@ -249,6 +250,7 @@ int traitement_AR(arm_core p, uint32_t mot, uint8_t flag_C ){
 
 	/** Update of the shifter_operand if not immediate value **/
 	uint8_t shifter_carry_out = update_shifter_operand(p, Rdest, &shifter_operand, I, flag_C);
+
 
 	/** Selecion of the instruction encoded in opCode **/
 	switch (opCode) {
@@ -308,7 +310,9 @@ int traitement_AR(arm_core p, uint32_t mot, uint8_t flag_C ){
 	return 1;
 }
 
-int traitement_LS(){return 0;}
+int traitement_LS(arm_core p, uint32_t mot){
+	return arm_load_store(p, mot);
+}
 
 int traitement_BR(arm_core p, uint32_t mot){
 	arm_branch(p,mot);
@@ -335,10 +339,19 @@ int traitement_SPE(){ return 0;}
 
 int select_execute_instruction(arm_core p, uint32_t mot, uint8_t flag_N, uint8_t flag_Z, uint8_t flag_V, uint8_t flag_C) {
 
-	uint8_t typeop = (mot >>26)&3;
+	uint8_t typeop = (mot >> 26)&3;
 	switch (typeop){
-		case 0: return traitement_AR(p, mot, flag_C);break;
-		case 1: return traitement_LS();break;
+		case 0: ;
+			uint8_t bit7 = (mot >>7) &1;
+			uint8_t bit4 = (mot >>4) &1;
+			if(bit7 && bit4){
+				return arm_load_store_h(p, mot);
+			}
+			else{
+				return traitement_AR(p, mot, flag_C);
+			}
+			break;
+		case 1: return traitement_LS(p, mot);break;
 		case 2: return traitement_BR(p, mot);break;
 		case 3: return traitement_SPE();break;
 	}
