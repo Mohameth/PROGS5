@@ -27,7 +27,7 @@ Contact: Guillaume.Huard@imag.fr
 struct registers_data {
 
 	//uint32_t *regs;
-    uint32_t regs[15];
+  uint32_t regs[15];
 	uint32_t cpsr;
 };
 
@@ -44,7 +44,7 @@ void registers_destroy(registers r) {
 
 uint8_t get_mode(registers r) {
     return 0;
-} 
+}
 
 int current_mode_has_spsr(registers r) {
     return 0;
@@ -56,7 +56,7 @@ int in_a_privileged_mode(registers r) {
 
 uint32_t read_register(registers r, uint8_t reg) {
     uint32_t value = 0;
-	value = read_usr_register(r,reg);
+		value = read_usr_register(r,reg);
     return value;
 }
 
@@ -90,4 +90,4 @@ void write_cpsr(registers r, uint32_t value) {
 }
 
 void write_spsr(registers r, uint32_t value) {
-}	
+}

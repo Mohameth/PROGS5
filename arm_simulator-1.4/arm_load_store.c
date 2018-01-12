@@ -68,8 +68,8 @@ int arm_load_store_h(arm_core p, uint32_t ins){
 
 	return 0;
 }
-void write_stuff(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit, uint8_t RN_bit);
-void write_other_stuff(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit);
+void LDR_LDRB(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit, uint8_t RN_bit);
+void STR_STRB(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit);
 
 int arm_load_store(arm_core p, uint32_t ins) {
 	//L_bit Distinguishes between a Load (L==1) and a Store instruction (L==0).
@@ -105,22 +105,22 @@ int arm_load_store(arm_core p, uint32_t ins) {
 		if (U_bit)	temp = RN_adr + offset_reg;
 		else 				temp = RN_adr - offset_reg;
 
-		if (L_bit)	write_stuff(p, B_bit, temp, RD_bit, RN_bit);
-		else 				write_other_stuff(p, B_bit, temp, RD_bit);
+		if (L_bit)	LDR_LDRB(p, B_bit, temp, RD_bit, RN_bit);
+		else 				STR_STRB(p, B_bit, temp, RD_bit);
 
 	} else {
 		if (U_bit)	temp = RN_adr + offset;
 		else 				temp = RN_adr - offset;
 
 		if (L_bit) {
-			write_stuff(p, B_bit, temp, RD_bit, RN_bit);
+			LDR_LDRB(p, B_bit, temp, RD_bit, RN_bit);
 
 			if (P_bit && W_bit) {
 				arm_write_usr_register(p, RN_bit, temp);
 			}
 		}
 		else {
-			write_other_stuff(p, B_bit, temp, RD_bit);
+			STR_STRB(p, B_bit, temp, RD_bit);
 
 			if (!P_bit || (P_bit && W_bit)) arm_write_usr_register(p, RN_bit, temp);
 		}
@@ -129,7 +129,7 @@ int arm_load_store(arm_core p, uint32_t ins) {
 	return 0;
 }
 
-void write_stuff(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit, uint8_t RN_bit) {
+void LDR_LDRB(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit, uint8_t RN_bit) {
 	if (B_bit) {
 		uint8_t motaecrire;
 		arm_read_byte(p, temp, &motaecrire);
@@ -146,7 +146,7 @@ void write_stuff(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit, uint8
 	arm_write_usr_register(p, RN_bit, temp);
 }
 
-void write_other_stuff(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit) {
+void STR_STRB(arm_core p, uint8_t B_bit, uint32_t temp, uint8_t RD_bit) {
 	if (B_bit) {
 		uint8_t motaecrire = arm_read_usr_register(p, RD_bit) & 0xFF;
 		arm_write_byte(p, temp, motaecrire);

@@ -1,5 +1,2 @@
-
-file Examples/example2
-target remote localhost:12345
-load
-info register
+./arm_simulator --gdb-port 12346 &
+arm-none-eabi-gdb -x instr

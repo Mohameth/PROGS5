@@ -22,11 +22,11 @@ BIC : OK
 MVN : Fait (Aymerick) [0]
 
 MEMOIRE :
-LDR 	: En cours (Adel)
-LDRB	: En cours (Adel)
-LDRH	: En cours (Adel)
-STR 	: En cours (Adel)
-STRB 	: En cours (Adel)
-STRH 	: En cours (Adel)
-LDM(1) 	: -
-STM(1) 	: -
+LDR 	: OK
+LDRB	: OK
+LDRH	: a test
+STR 	: OK
+STRB 	: OK
+STRH 	: a test
+LDM(1) 	: a test
+STM(1) 	: a test
